@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Une carte de fidélité blanche avec son code-barres, sur fond corail -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M33,38h42a5,5 0,0 1,5 5v22a5,5 0,0 1,-5 5h-42a5,5 0,0 1,-5 -5v-22a5,5 0,0 1,5 -5z" />
+    <path android:fillColor="#1B1D26"
+        android:pathData="M36,46h2v17h-2zM40,46h1v17h-1zM43,46h3v17h-3zM48,46h1v17h-1zM51,46h2v17h-2zM55,46h1v17h-1zM58,46h3v17h-3zM63,46h1v17h-1zM66,46h2v17h-2zM70,46h1v17h-1z" />
+</vector>

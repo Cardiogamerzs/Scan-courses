@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Scan Courses</title>
+<meta name="theme-color" content="#14161f">
+</head><body>
+<style>
+@font-face{font-family:"Bricolage Grotesque";font-weight:600;src:url(fonts/bricolage-grotesque-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Bricolage Grotesque";font-weight:800;src:url(fonts/bricolage-grotesque-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:400;src:url(fonts/inter-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:500;src:url(fonts/inter-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:600;src:url(fonts/inter-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:500;src:url(fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2")}
+</style>
+<style>
+/* Layout: wallet app — sticky header, 2-column grid of credit-card-shaped tiles, bottom sheets for detail & edit */
+:root{
+  --bg:#f3f1ee; --surface:#ffffff; --fg:#1b1d26; --muted:#6b6f7d; --line:#e2dfda;
+  --accent:#ff5a36; --accent-fg:#ffffff; --scrim:rgba(20,22,31,.55);
+  --shadow:0 1px 2px rgba(20,22,31,.08),0 8px 24px rgba(20,22,31,.10);
+  --f-display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:18px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14161f; --surface:#1e212d; --fg:#f2f1ee; --muted:#9a9eae; --line:#2c3040;
+  --accent:#ff6b4a; --accent-fg:#14161f; --scrim:rgba(0,0,0,.65);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14161f; --surface:#1e212d; --fg:#f2f1ee; --muted:#9a9eae; --line:#2c3040;
+  --accent:#ff6b4a; --accent-fg:#14161f; --scrim:rgba(0,0,0,.65);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); color-scheme:dark}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 120px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:18px 12px;display:flex;flex-direction:column;gap:12px}
+.hrow{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,7vw,36px);letter-spacing:-.02em;margin:0;text-wrap:balance}
+.count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:0 12px}
+.search svg{flex:none;color:var(--muted)}
+.search input{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font:inherit;padding:12px 0;outline:none}
+.status{font-size:12px;color:var(--muted);min-height:16px}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.card{position:relative;aspect-ratio:1.586;max-width:100%;border-radius:var(--r);border:0;padding:14px;text-align:left;cursor:pointer;
+  color:var(--ink,#fff);background:var(--c1,#555);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:space-between;
+  font:inherit;transition:transform .15s ease}
+.card::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(120% 80% at 110% -10%,var(--c2,transparent) 0 45%,transparent 46%),
+  radial-gradient(60% 50% at -10% 120%,rgba(255,255,255,.14) 0 50%,transparent 51%);pointer-events:none}
+.card:active{transform:scale(.97)}
+.card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.card>*{position:relative}
+.card .name{font-family:var(--f-display);font-weight:800;font-size:clamp(17px,4.6vw,22px);line-height:1.05;letter-spacing:-.01em;overflow-wrap:anywhere}
+.card .num{font-family:var(--f-mono);font-size:11px;opacity:.85;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .chip{position:absolute;top:14px;right:14px;width:26px;height:20px;border-radius:5px;background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(255,255,255,.2));}
+.card.todo .num{font-family:var(--f-body);font-weight:600;letter-spacing:0;font-size:12px;background:rgba(255,255,255,.22);padding:3px 8px;border-radius:99px;align-self:flex-start}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0}
+
+.fab{position:fixed;right:max(20px,calc(env(safe-area-inset-right,0px) + 20px));bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:6;
+  display:flex;align-items:center;gap:8px;border:0;border-radius:99px;padding:15px 22px 15px 18px;background:var(--accent);color:var(--accent-fg);
+  font:600 15px var(--f-body);box-shadow:0 8px 24px rgba(255,90,54,.4);cursor:pointer}
+.fab:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .18s ease}
+.sheet{width:100%;max-width:560px;max-height:94%;overflow:auto;background:var(--surface);border-radius:24px 24px 0 0;
+  padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+  padding-block:10px calc(env(safe-area-inset-bottom,0px) + 22px);animation:up .22s cubic-bezier(.2,.8,.2,1)}
+.grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 14px}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+@keyframes fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.scrim,.sheet{animation:none}.card{transition:none}}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:24px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+
+.codebox{background:#fff;color:#111;border-radius:16px;padding:22px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid var(--line)}
+.codebox svg,.codebox canvas,.codebox img{max-width:100%;height:auto;display:block}
+.codebox .digits{font:500 18px var(--f-mono);letter-spacing:.12em;text-align:center;overflow-wrap:anywhere;color:#111}
+.tip{font-size:12px;color:var(--muted);text-align:center;margin:10px 0 0}
+.brandband{height:8px;border-radius:99px;margin:0 0 16px;background:var(--c1)}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.btn{flex:1 1 140px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:13px 16px;font:600 15px var(--f-body);cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+.btn.danger{color:#d93a2b;border-color:color-mix(in srgb,#d93a2b 35%,var(--line))}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:default}
+
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted);margin-top:14px}
+.f input,.f select{font:500 16px var(--f-body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;width:100%;min-width:0}
+.f input:focus,.f select:focus{outline:2px solid var(--accent);border-color:transparent}
+#f-number{font-family:var(--f-mono);letter-spacing:.06em}
+.presets{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin:0 -4px;padding-inline:4px;scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.pre{flex:none;border:2px solid transparent;border-radius:99px;padding:8px 13px;font:600 13px var(--f-body);cursor:pointer;color:var(--ink,#fff);background:var(--c1)}
+.pre[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 0 2px var(--surface) inset}
+.colors{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;background:var(--c1)}
+.sw[aria-pressed="true"]{border-color:var(--fg)}
+.scanbtn{margin-top:10px}
+.msg{font-size:13px;margin-top:8px;min-height:18px}
+.msg.ok{color:#1f9d55}.msg.err{color:#d93a2b}
+.confirm{margin-top:14px;padding:14px;border-radius:14px;background:color-mix(in srgb,#d93a2b 10%,var(--surface));border:1px solid color-mix(in srgb,#d93a2b 30%,var(--line))}
+.confirm p{margin:0 0 10px;font-weight:600}
+.hint{margin-top:22px;padding:14px 16px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:13px}
+.hint b{color:var(--fg)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="hrow"><h1>Mes cartes</h1><span class="count" id="count"></span></div>
+    <label class="search" for="q">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Chercher une carte…" autocomplete="off">
+    </label>
+    <div class="status" id="status">Tes cartes restent sur ce téléphone, même sans réseau.</div>
+  </header>
+  <main class="grid" id="grid" aria-live="polite"></main>
+  <div class="hint"><b>Astuce :</b> quand tu affiches une carte, l'écran passe en luminosité maximum pour que le lecteur de la caisse lise bien le code. 😎</div>
+</div>
+
+<button class="fab" id="add" type="button">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  Ajouter une carte
+</button>
+
+<div id="layer"></div>
+<input type="file" id="photo" accept="image/*" capture="environment" hidden>
+
+<script src="lib/JsBarcode.all.min.js"></script>
+<script src="lib/qrcode.min.js"></script>
+<script>
+(() => {
+/* ---------- Enseignes ---------- */
+const BRANDS = [
+  {id:"intermarche", name:"Intermarché", c1:"#e2001a", c2:"#ff4d5e", ink:"#fff"},
+  {id:"auchan",      name:"Auchan",      c1:"#e3001b", c2:"#2e9a3b", ink:"#fff"},
+  {id:"carrefour",   name:"Carrefour",   c1:"#004e9f", c2:"#e3001b", ink:"#fff"},
+  {id:"picard",      name:"Picard",      c1:"#0a2a5e", c2:"#3d7ad6", ink:"#fff"},
+  {id:"orchestra",   name:"Orchestra",   c1:"#f2a20f", c2:"#e8507a", ink:"#1b1d26"},
+  {id:"leclerc",     name:"E.Leclerc",   c1:"#0066b3", c2:"#f39200", ink:"#fff"},
+  {id:"lidl",        name:"Lidl",        c1:"#0050aa", c2:"#fff000", ink:"#fff"},
+  {id:"superu",      name:"Super U",     c1:"#e30613", c2:"#0b4ea2", ink:"#fff"},
+  {id:"monoprix",    name:"Monoprix",    c1:"#111111", c2:"#e40046", ink:"#fff"},
+  {id:"decathlon",   name:"Decathlon",   c1:"#0082c3", c2:"#7ad0f5", ink:"#fff"},
+  {id:"sephora",     name:"Sephora",     c1:"#000000", c2:"#555555", ink:"#fff"},
+  {id:"fnac",        name:"Fnac",        c1:"#e1a925", c2:"#1b1d26", ink:"#1b1d26"},
+  {id:"ikea",        name:"IKEA Family", c1:"#0058a3", c2:"#ffdb00", ink:"#fff"},
+  {id:"action",      name:"Action",      c1:"#0d4ea6", c2:"#e1251b", ink:"#fff"},
+  {id:"leroy",       name:"Leroy Merlin",c1:"#78be20", c2:"#2e7d1e", ink:"#fff"},
+  {id:"pharmacie",   name:"Pharmacie",   c1:"#00a36c", c2:"#7fe0b8", ink:"#fff"},
+];
+const DEFAULTS = ["intermarche","auchan","carrefour","picard","orchestra"];
+const SWATCHES = ["#ff5a36","#e2001a","#d6336c","#7b3fe4","#0b63ce","#0a8f8f","#2e9a3b","#f2a20f","#5b4636","#1b1d26"];
+const byId = Object.fromEntries(BRANDS.map(b=>[b.id,b]));
+
+/* ---------- État & stockage ---------- */
+const LS = "cartes-fidelite-v1";
+let cards = {};           // id -> {id,name,number,format,brand,color,created,updated,uses}
+const $ = s => document.querySelector(s);
+const status = t => { $("#status").textContent = t || ""; };
+function lsLoad(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}")||{}; }catch(e){ return {}; } }
+function lsSave(){ try{ localStorage.setItem(LS, JSON.stringify(cards)); }catch(e){} }
+cards = lsLoad();
+
+function clean(c){ const o={...c}; delete o.id; return o; }
+async function save(c){
+  c.updated = Date.now();
+  cards[c.id] = c; lsSave(); render();
+}
+async function remove(id){
+  delete cards[id]; lsSave(); render();
+}
+
+/* ---------- Liste ---------- */
+function look(c){
+  const b = c.brand && byId[c.brand];
+  if(b) return {c1:b.c1,c2:b.c2,ink:b.ink};
+  const col = c.color || "#ff5a36";
+  return {c1:col, c2:"rgba(255,255,255,.18)", ink: lightColor(col) ? "#1b1d26" : "#fff"};
+}
+function lightColor(hex){ const n=parseInt(hex.slice(1),16); const r=n>>16,g=n>>8&255,b=n&255; return (r*299+g*587+b*114)/1000 > 165; }
+function styleVars(el,l){ el.style.setProperty("--c1",l.c1); el.style.setProperty("--c2",l.c2); el.style.setProperty("--ink",l.ink); }
+function spaced(n){ return n.length>8 ? n.replace(/(.{4})/g,"$1 ").trim() : n; }
+
+function allItems(){
+  const list = Object.values(cards);
+  // les 5 enseignes demandées apparaissent toujours, même vides
+  for(const id of DEFAULTS) if(!cards[id]) list.push({id, brand:id, name:byId[id].name, number:"", placeholder:true});
+  return list.sort((a,b)=>{
+    if(!!a.number !== !!b.number) return a.number ? -1 : 1;
+    return (b.uses||0)-(a.uses||0) || a.name.localeCompare(b.name,"fr");
+  });
+}
+function render(){
+  const q = $("#q").value.trim().toLowerCase();
+  const items = allItems().filter(c => !q || c.name.toLowerCase().includes(q) || (c.number||"").includes(q));
+  const g = $("#grid"); g.textContent = "";
+  const filled = Object.values(cards).filter(c=>c.number).length;
+  $("#count").textContent = filled + (filled>1?" cartes":" carte");
+  if(!items.length){ const d=document.createElement("div"); d.className="empty"; d.textContent="Aucune carte ne correspond à « "+q+" »."; g.append(d); return; }
+  for(const c of items){
+    const b = document.createElement("button");
+    b.type="button"; b.className="card"+(c.number?"":" todo");
+    styleVars(b, look(c));
+    const n=document.createElement("div"); n.className="name"; n.textContent=c.name;
+    const chip=document.createElement("span"); chip.className="chip";
+    const num=document.createElement("div"); num.className="num"; num.textContent = c.number ? spaced(c.number) : "+ Ajouter le numéro";
+    b.append(n,chip,num);
+    b.setAttribute("aria-label", c.name + (c.number ? ", afficher le code" : ", ajouter le numéro"));
+    b.onclick = () => c.number ? showCard(c.id) : editCard(c);
+    g.append(b);
+  }
+}
+$("#q").addEventListener("input", render);
+
+/* ---------- Sheets ---------- */
+let wake = null;
+function openSheet(build){
+  closeSheet();
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const sh=document.createElement("div"); sh.className="sheet"; sh.setAttribute("role","dialog"); sh.setAttribute("aria-modal","true");
+  const grab=document.createElement("div"); grab.className="grab"; sh.append(grab);
+  scrim.append(sh); $("#layer").append(scrim);
+  scrim.addEventListener("click", e => { if(e.target===scrim) closeSheet(); });
+  build(sh);
+  const f = sh.querySelector("input,button"); if(f) f.focus({preventScroll:true});
+}
+function closeSheet(){ $("#layer").textContent=""; if(wake){ wake.release().catch(()=>{}); wake=null; } if(window.Android) Android.setBright(false); }
+window.onBack = () => { if($("#layer").firstChild){ closeSheet(); return true; } return false; };
+document.addEventListener("keydown", e => { if(e.key==="Escape") closeSheet(); });
+function h(tag, props={}, ...kids){ const el=document.createElement(tag); Object.assign(el, props); el.append(...kids); return el; }
+
+/* Code-barres */
+function guessFormat(n){
+  if(/^\d{13}$/.test(n) && eanOk(n)) return "EAN13";
+  if(/^\d{8}$/.test(n) && eanOk(n)) return "EAN8";
+  return "CODE128";
+}
+function eanOk(n){ const d=n.split("").map(Number), last=d.pop(); let s=0; d.reverse().forEach((x,i)=>s+=x*(i%2===0?3:1)); return (10-s%10)%10===last; }
+function drawCode(box, number, format){
+  const fmt = (!format || format==="AUTO") ? guessFormat(number) : format;
+  if(fmt==="QR"){
+    const d=document.createElement("div"); box.append(d);
+    try{ new QRCode(d,{text:number,width:240,height:240,correctLevel:QRCode.CorrectLevel.M}); }catch(e){ d.textContent="QR indisponible"; }
+    return;
+  }
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg"); box.append(svg);
+  let ok=true;
+  try{ JsBarcode(svg, number, {format:fmt, width:2.6, height:110, displayValue:false, margin:10, background:"#ffffff", lineColor:"#000000", valid:v=>{ok=v;}}); }catch(e){ ok=false; }
+  if(!ok && fmt!=="CODE128"){ svg.remove(); drawCode(box, number, "CODE128"); }
+  else svg.setAttribute("width","100%");
+}
+
+function showCard(id){
+  const c = cards[id]; if(!c) return;
+  c.uses = (c.uses||0)+1; c.lastUsed = Date.now(); save(c);
+  openSheet(sh => {
+    const band=h("div",{className:"brandband"}); styleVars(band, look(c));
+    const box=h("div",{className:"codebox"});
+    sh.append(band, h("h2",{textContent:c.name}), h("p",{className:"sub",textContent:"Présente ce code au lecteur de la caisse."}), box);
+    drawCode(box, c.number, c.format);
+    box.append(h("div",{className:"digits",textContent:spaced(c.number)}));
+    sh.append(h("p",{className:"tip",textContent:window.Android ? "Luminosité au max, l'écran reste allumé ☀️" : "Écran trop sombre ? Monte la luminosité au maximum 😎"}));
+    const copy=h("button",{type:"button",className:"btn",textContent:"Copier le numéro"});
+    copy.onclick = async () => { try{ await navigator.clipboard.writeText(c.number); copy.textContent="Copié ✓"; }catch(e){ copy.textContent="Sélectionne le numéro ci-dessus"; } };
+    const edit=h("button",{type:"button",className:"btn",textContent:"Modifier"}); edit.onclick=()=>editCard(c);
+    const close=h("button",{type:"button",className:"btn primary",textContent:"Fermer"}); close.onclick=closeSheet;
+    sh.append(h("div",{className:"row"},copy,edit,close));
+  });
+  if(window.Android) Android.setBright(true);
+  else if(navigator.wakeLock) navigator.wakeLock.request("screen").then(w=>wake=w).catch(()=>{});
+}
+
+/* Formulaire */
+function editCard(existing){
+  const isNew = !existing || existing.placeholder;
+  const draft = existing ? {...existing} : {brand:null, name:"", number:"", format:"AUTO", color:SWATCHES[0]};
+  delete draft.placeholder;
+  openSheet(sh => {
+    sh.append(h("h2",{textContent: existing && !existing.placeholder ? "Modifier la carte" : (existing ? existing.name : "Nouvelle carte")}),
+              h("p",{className:"sub",textContent:"Scanne le code-barres de ta carte en photo, ou tape le numéro écrit dessous."}));
+
+    // enseigne
+    const preWrap=h("div",{className:"presets"});
+    const brandLbl=h("label",{className:"f"}, "Enseigne", preWrap);
+    const custom={id:null,name:"Autre…",c1:"var(--line)",c2:"",ink:"var(--fg)"};
+    const nameIn=h("input",{id:"f-name",value:draft.name,placeholder:"Nom de la carte",autocomplete:"off"});
+    const nameLbl=h("label",{className:"f",htmlFor:"f-name"},"Nom", nameIn);
+    const swWrap=h("div",{className:"colors"});
+    const colorLbl=h("div",{className:"f"},h("span",{textContent:"Couleur"}),swWrap);
+    colorLbl.style.cssText="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted);margin-top:14px";
+    function syncBrand(){
+      preWrap.querySelectorAll(".pre").forEach(p=>p.setAttribute("aria-pressed", String((p.dataset.id||null)===(draft.brand||null))));
+      colorLbl.hidden = !!draft.brand;
+    }
+    [...BRANDS, custom].forEach(b=>{
+      const p=h("button",{type:"button",className:"pre",textContent:b.name});
+      p.dataset.id=b.id||""; p.style.setProperty("--c1",b.c1); p.style.setProperty("--ink",b.ink);
+      p.onclick=()=>{ draft.brand=b.id; if(b.id){ draft.name=b.name; nameIn.value=b.name; } else { nameIn.value=""; draft.name=""; nameIn.focus(); } syncBrand(); };
+      preWrap.append(p);
+    });
+    nameIn.oninput=()=>{ draft.name=nameIn.value; };
+    SWATCHES.forEach(col=>{
+      const s=h("button",{type:"button",className:"sw"}); s.style.setProperty("--c1",col); s.setAttribute("aria-label","Couleur "+col);
+      s.setAttribute("aria-pressed", String(draft.color===col));
+      s.onclick=()=>{ draft.color=col; swWrap.querySelectorAll(".sw").forEach(x=>x.setAttribute("aria-pressed",String(x===s))); };
+      swWrap.append(s);
+    });
+
+    // numéro
+    const numIn=h("input",{id:"f-number",value:draft.number,placeholder:"ex. 2970123456789",inputMode:"text",autocomplete:"off"});
+    const numLbl=h("label",{className:"f",htmlFor:"f-number"},"Numéro de carte", numIn);
+    const scan=h("button",{type:"button",className:"btn scanbtn"});
+    scan.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 9v6M10 9v6M13 9v6M17 9v6"/></svg> Scanner le code-barres (photo)';
+    scan.style.width="100%";
+    const msg=h("div",{className:"msg"});
+    function applyScan(r){ numIn.value=r.text; draft.number=r.text; draft.format=r.format||"AUTO"; fmtSel.value=draft.format; msg.className="msg ok"; msg.textContent="Code trouvé ✓ ("+r.text+")"; }
+    if(window.Android){
+      scan.lastChild.textContent=" Scanner avec la caméra";
+      window.onNativeScan = (text, fmt) => { if(text) applyScan({text, format:FMT_MAP[fmt]||"AUTO"}); else { msg.className="msg err"; msg.textContent=fmt||"Scan annulé."; } };
+    }
+    scan.onclick=()=>{ if(window.Android){ msg.className="msg"; msg.textContent="Vise le code-barres de ta carte…"; Android.scan(); return; } const f=$("#photo"); f.value=""; f.onchange=async()=>{
+      const file=f.files[0]; if(!file) return;
+      msg.className="msg"; msg.textContent="Lecture du code…";
+      try{ applyScan(await decodeImage(file)); }
+      catch(e){ msg.className="msg err"; msg.textContent="Je n'ai pas réussi à lire le code. Reprends la photo bien à plat, de près, ou tape le numéro."; }
+    }; f.click(); };
+
+    const fmtSel=h("select",{id:"f-format"});
+    [["AUTO","Automatique"],["EAN13","EAN-13 (13 chiffres)"],["CODE128","Code 128"],["EAN8","EAN-8"],["QR","QR code"]].forEach(([v,t])=>fmtSel.append(h("option",{value:v,textContent:t})));
+    fmtSel.value=draft.format||"AUTO";
+    const fmtLbl=h("label",{className:"f",htmlFor:"f-format"},"Type de code", fmtSel);
+
+    const err=h("div",{className:"msg err"});
+    const saveBtn=h("button",{type:"button",className:"btn primary",textContent:"Enregistrer"});
+    const cancel=h("button",{type:"button",className:"btn",textContent:"Annuler"}); cancel.onclick=closeSheet;
+    saveBtn.onclick=async()=>{
+      const name=(nameIn.value||"").trim(), number=(numIn.value||"").replace(/\s+/g,"").trim();
+      if(!name){ err.textContent="Donne un nom à la carte."; nameIn.focus(); return; }
+      if(!number){ err.textContent="Ajoute le numéro, ou scanne le code-barres."; numIn.focus(); return; }
+      const id = draft.id || draft.brand && !cards[draft.brand] && draft.brand || ("c"+Date.now().toString(36));
+      const c = {...draft, id, name, number, format:fmtSel.value, created:draft.created||Date.now()};
+      if(c.brand) delete c.color;
+      await save(c); showCard(id);
+    };
+    sh.append(brandLbl, nameLbl, colorLbl, numLbl, scan, msg, fmtLbl, err, h("div",{className:"row"},cancel,saveBtn));
+
+    if(existing && !existing.placeholder){
+      const del=h("button",{type:"button",className:"btn danger",textContent:"Supprimer cette carte"}); del.style.width="100%";
+      const zone=h("div",{}); zone.style.marginTop="12px";
+      del.onclick=()=>{
+        zone.textContent="";
+        const yes=h("button",{type:"button",className:"btn danger",textContent:"Oui, supprimer"});
+        const no=h("button",{type:"button",className:"btn",textContent:"Non"});
+        yes.onclick=async()=>{ await remove(existing.id); closeSheet(); };
+        no.onclick=()=>{ zone.textContent=""; zone.append(del); };
+        zone.append(h("div",{className:"confirm"},h("p",{textContent:"Supprimer « "+existing.name+" » ?"}),h("div",{className:"row"},no,yes)));
+      };
+      zone.append(del); sh.append(zone);
+    }
+    syncBrand();
+  });
+}
+$("#add").onclick=()=>editCard(null);
+
+/* ---------- Lecture du code-barres depuis une photo ---------- */
+const FMT_MAP = {EAN13:"EAN13",EAN8:"EAN8",CODE128:"CODE128",QR:"QR",ean_13:"EAN13",ean_8:"EAN8",code_128:"CODE128",qr_code:"QR",EAN_13:"EAN13",EAN_8:"EAN8",CODE_128:"CODE128",QR_CODE:"QR"};
+async function decodeImage(file){
+  if("BarcodeDetector" in window){
+    try{
+      const det=new BarcodeDetector();
+      const bmp=await createImageBitmap(file);
+      const res=await det.detect(bmp);
+      if(res.length) return {text:res[0].rawValue, format:FMT_MAP[res[0].format]||"CODE128"};
+    }catch(e){}
+  }
+  await loadZXing();
+  const url=URL.createObjectURL(file);
+  try{
+    const hints=new Map(); hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+    const reader=new ZXing.BrowserMultiFormatReader(hints);
+    const r=await reader.decodeFromImageUrl(url);
+    const fname=ZXing.BarcodeFormat[r.getBarcodeFormat()];
+    return {text:r.getText(), format:FMT_MAP[fname]||"CODE128"};
+  } finally { URL.revokeObjectURL(url); }
+}
+let zx=null;
+function loadZXing(){
+  if(window.ZXing) return Promise.resolve();
+  return zx ||= new Promise((ok,ko)=>{ const s=document.createElement("script"); s.src="lib/zxing.min.js"; s.onload=ok; s.onerror=ko; document.head.append(s); });
+}
+
+render();
+
+})();
+</script>
+
+</body></html>
