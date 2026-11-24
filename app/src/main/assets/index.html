@@ -109,6 +109,8 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:60
 .msg.ok{color:#1f9d55}.msg.err{color:#d93a2b}
 .confirm{margin-top:14px;padding:14px;border-radius:14px;background:color-mix(in srgb,#d93a2b 10%,var(--surface));border:1px solid color-mix(in srgb,#d93a2b 30%,var(--line))}
 .confirm p{margin:0 0 10px;font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 14px);z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px);animation:fade .2s ease}
+.card{-webkit-touch-callout:none;user-select:none}
 .hint{margin-top:22px;padding:14px 16px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:13px}
 .hint b{color:var(--fg)}
 </style>
@@ -123,7 +125,7 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:60
     <div class="status" id="status">Tes cartes restent sur ce téléphone, même sans réseau.</div>
   </header>
   <main class="grid" id="grid" aria-live="polite"></main>
-  <div class="hint"><b>Astuce :</b> quand tu affiches une carte, l'écran passe en luminosité maximum pour que le lecteur de la caisse lise bien le code. 😎</div>
+  <div class="hint"><b>Supprimer une carte :</b> ouvre-la puis touche « Supprimer », ou reste appuyé dessus dans la liste. 🗑️<br><br><div class="hint"><b>Astuce :</b> quand tu affiches une carte, l'écran passe en luminosité maximum pour que le lecteur de la caisse lise bien le code. 😎</div>
 </div>
 
 <button class="fab" id="add" type="button">
@@ -175,6 +177,30 @@ async function save(c){
   c.updated = Date.now();
   cards[c.id] = c; lsSave(); render();
 }
+async function removeCard(c){
+  if(DEFAULTS.includes(c.id)) return save({id:c.id, brand:c.brand||c.id, name:c.name, number:"", hidden:true});
+  return remove(c.id);
+}
+function deleteZone(c, label, after){
+  const zone=h("div",{}); zone.style.marginTop="12px";
+  const del=h("button",{type:"button",className:"btn danger"}); del.style.width="100%";
+  del.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
+  del.append(" "+label);
+  del.onclick=()=>{
+    zone.textContent="";
+    const yes=h("button",{type:"button",className:"btn danger",textContent:"Oui, supprimer"});
+    const no=h("button",{type:"button",className:"btn",textContent:"Non, garder"});
+    yes.onclick=async()=>{ await removeCard(c); closeSheet(); toast("« "+c.name+" » supprimée"); if(after) after(); };
+    no.onclick=()=>{ zone.textContent=""; zone.append(del); };
+    zone.append(h("div",{className:"confirm"},h("p",{textContent:"Supprimer « "+c.name+" » ?"}),h("div",{className:"row"},no,yes)));
+    yes.focus();
+  };
+  zone.append(del); return zone;
+}
+function toast(t){
+  const el=h("div",{className:"toast",textContent:t}); el.setAttribute("role","status");
+  document.body.append(el); setTimeout(()=>el.remove(),2600);
+}
 async function remove(id){
   delete cards[id]; lsSave(); render();
 }
@@ -191,7 +217,7 @@ function styleVars(el,l){ el.style.setProperty("--c1",l.c1); el.style.setPropert
 function spaced(n){ return n.length>8 ? n.replace(/(.{4})/g,"$1 ").trim() : n; }
 
 function allItems(){
-  const list = Object.values(cards);
+  const list = Object.values(cards).filter(c=>!c.hidden);
   // les 5 enseignes demandées apparaissent toujours, même vides
   for(const id of DEFAULTS) if(!cards[id]) list.push({id, brand:id, name:byId[id].name, number:"", placeholder:true});
   return list.sort((a,b)=>{
@@ -203,7 +229,7 @@ function render(){
   const q = $("#q").value.trim().toLowerCase();
   const items = allItems().filter(c => !q || c.name.toLowerCase().includes(q) || (c.number||"").includes(q));
   const g = $("#grid"); g.textContent = "";
-  const filled = Object.values(cards).filter(c=>c.number).length;
+  const filled = Object.values(cards).filter(c=>c.number && !c.hidden).length;
   $("#count").textContent = filled + (filled>1?" cartes":" carte");
   if(!items.length){ const d=document.createElement("div"); d.className="empty"; d.textContent="Aucune carte ne correspond à « "+q+" »."; g.append(d); return; }
   for(const c of items){
@@ -215,7 +241,11 @@ function render(){
     const num=document.createElement("div"); num.className="num"; num.textContent = c.number ? spaced(c.number) : "+ Ajouter le numéro";
     b.append(n,chip,num);
     b.setAttribute("aria-label", c.name + (c.number ? ", afficher le code" : ", ajouter le numéro"));
-    b.onclick = () => c.number ? showCard(c.id) : editCard(c);
+    let pressT=null, long=false;
+    b.addEventListener("pointerdown", ()=>{ long=false; pressT=setTimeout(()=>{ long=true; if(navigator.vibrate) navigator.vibrate(15); askDelete(c); }, 550); });
+    ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev, ()=>clearTimeout(pressT)));
+    b.addEventListener("contextmenu", e=>e.preventDefault());
+    b.onclick = () => { if(long) return; c.number ? showCard(c.id) : editCard(c); };
     g.append(b);
   }
 }
@@ -273,7 +303,7 @@ function showCard(id){
     copy.onclick = async () => { try{ await navigator.clipboard.writeText(c.number); copy.textContent="Copié ✓"; }catch(e){ copy.textContent="Sélectionne le numéro ci-dessus"; } };
     const edit=h("button",{type:"button",className:"btn",textContent:"Modifier"}); edit.onclick=()=>editCard(c);
     const close=h("button",{type:"button",className:"btn primary",textContent:"Fermer"}); close.onclick=closeSheet;
-    sh.append(h("div",{className:"row"},copy,edit,close));
+    sh.append(h("div",{className:"row"},copy,edit,close), deleteZone(c, "Supprimer cette carte"));
   });
   if(window.Android) Android.setBright(true);
   else if(navigator.wakeLock) navigator.wakeLock.request("screen").then(w=>wake=w).catch(()=>{});
@@ -346,27 +376,26 @@ function editCard(existing){
       const name=(nameIn.value||"").trim(), number=(numIn.value||"").replace(/\s+/g,"").trim();
       if(!name){ err.textContent="Donne un nom à la carte."; nameIn.focus(); return; }
       if(!number){ err.textContent="Ajoute le numéro, ou scanne le code-barres."; numIn.focus(); return; }
-      const id = draft.id || draft.brand && !cards[draft.brand] && draft.brand || ("c"+Date.now().toString(36));
-      const c = {...draft, id, name, number, format:fmtSel.value, created:draft.created||Date.now()};
+      const id = draft.id || draft.brand && (!cards[draft.brand] || cards[draft.brand].hidden) && draft.brand || ("c"+Date.now().toString(36));
+      const c = {...draft, id, name, number, format:fmtSel.value, created:draft.created||Date.now()}; delete c.hidden;
       if(c.brand) delete c.color;
       await save(c); showCard(id);
     };
     sh.append(brandLbl, nameLbl, colorLbl, numLbl, scan, msg, fmtLbl, err, h("div",{className:"row"},cancel,saveBtn));
 
-    if(existing && !existing.placeholder){
-      const del=h("button",{type:"button",className:"btn danger",textContent:"Supprimer cette carte"}); del.style.width="100%";
-      const zone=h("div",{}); zone.style.marginTop="12px";
-      del.onclick=()=>{
-        zone.textContent="";
-        const yes=h("button",{type:"button",className:"btn danger",textContent:"Oui, supprimer"});
-        const no=h("button",{type:"button",className:"btn",textContent:"Non"});
-        yes.onclick=async()=>{ await remove(existing.id); closeSheet(); };
-        no.onclick=()=>{ zone.textContent=""; zone.append(del); };
-        zone.append(h("div",{className:"confirm"},h("p",{textContent:"Supprimer « "+existing.name+" » ?"}),h("div",{className:"row"},no,yes)));
-      };
-      zone.append(del); sh.append(zone);
-    }
+    if(existing) sh.append(deleteZone(existing, existing.placeholder ? "Retirer cette carte de la liste" : "Supprimer cette carte"));
     syncBrand();
+  });
+}
+function askDelete(c){
+  openSheet(sh => {
+    const band=h("div",{className:"brandband"}); styleVars(band, look(c));
+    sh.append(band, h("h2",{textContent:c.name}), h("p",{className:"sub",textContent: c.number ? spaced(c.number) : "Pas encore de numéro"}));
+    const z=deleteZone(c, c.number ? "Supprimer cette carte" : "Retirer cette carte de la liste");
+    const edit=h("button",{type:"button",className:"btn",textContent:"Modifier"}); edit.onclick=()=>editCard(c);
+    const close=h("button",{type:"button",className:"btn",textContent:"Annuler"}); close.onclick=closeSheet;
+    sh.append(z, h("div",{className:"row"},edit,close));
+    z.querySelector("button").click();
   });
 }
 $("#add").onclick=()=>editCard(null);
