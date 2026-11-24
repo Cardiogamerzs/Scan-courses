@@ -11,9 +11,9 @@ android {
         applicationId = "fr.erwan.scancourses"
         minSdk = 26
         targetSdk = 35
-        // Chaque build GitHub augmente le numéro, pour pouvoir installer la mise à jour par-dessus.
-        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        // À augmenter à chaque nouvelle version, pour pouvoir installer la mise à jour par-dessus.
+        versionCode = 2
+        versionName = "2.0"
     }
 
     signingConfigs {
