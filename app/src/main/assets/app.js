@@ -42,6 +42,7 @@ function applyTheme(name) {
   if (NATIVE && NATIVE.setBars) try { NATIVE.setBars(th.bg, !th.dark); } catch (e) {}
 }
 function themeFor(view) {
+  if (view === "product") view = "food";
   const mod = settings.modTheme[view];
   return mod && mod !== "home" ? mod : settings.theme;
 }
@@ -54,6 +55,7 @@ function render() { document.documentElement.lang = settings.lang; const root = 
 window.onBack = () => {
   if ($("#layer").firstChild) { closeSheet(); return true; }
   if (view === "options") { go(optScope === "home" ? "home" : optScope); return true; }
+  if (ctx.foodBack && ctx.foodBack()) return true;
   if (view !== "home") { go("home"); return true; }
   return false;
 };
@@ -96,7 +98,7 @@ VIEWS.home = root => {
   };
   mods.append(
     mk("cards", "linear-gradient(135deg,#ff5a36,#e8336b)", t("modCards"), t("modCardsSub"), t("nCards", filled)),
-    mk("food", "linear-gradient(135deg,#1f9d55,#0f766e)", t("modFood"), t("modFoodSub"), t("soon")),
+    mk("food", "linear-gradient(135deg,#1f9d55,#0f766e)", t("modFood"), t("modFoodSub"), null),
     mk("docs", "linear-gradient(135deg,#3b5bdb,#6741d9)", t("modDocs"), t("modDocsSub"), t("nDocs", docs.length))
   );
   wrap.append(hd, mods, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
@@ -441,15 +443,6 @@ function shrink(file) {
   return new Promise(res => { const img = new Image(); img.onload = () => { const s = Math.min(1, 1000 / Math.max(img.width, img.height)); const c = document.createElement("canvas"); c.width = img.width * s; c.height = img.height * s; c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL("image/jpeg", .8)); URL.revokeObjectURL(img.src); }; img.src = URL.createObjectURL(file); });
 }
 
-/* ================= Scan alimentaire (version 3) ================= */
-VIEWS.food = root => {
-  const wrap = h("div", { className: "wrap" });
-  wrap.append(h("header", {}, header(t("modFood"), { back: true, options: "food" })));
-  const ul = h("ul"); T().foodSoonList.forEach(x => ul.append(h("li", { textContent: x })));
-  wrap.append(h("div", { className: "soon" }, h("h2", { textContent: t("foodSoonTitle") }), ul));
-  root.append(wrap);
-};
-
 /* ================= Options ================= */
 let optScope = "home";
 function openOptions(scope) { optScope = scope; go("options"); }
@@ -474,6 +467,7 @@ VIEWS.options = root => {
       sel.value = settings.cardsSort; sel.onchange = () => { settings.cardsSort = sel.value; saveSettings(); };
       opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("sortCards") }), h("div", { className: "f", style: "margin:0" }, sel)));
     }
+    if (optScope === "food" && ctx.foodOptions) ctx.foodOptions(opts);
     if (optScope === "cards" || optScope === "docs") {
       const cb = h("input", { type: "checkbox", id: "o-bright", checked: settings.bright }); cb.onchange = () => { settings.bright = cb.checked; saveSettings(); };
       opts.append(h("div", { className: "optcard" }, h("label", { className: "toggle", htmlFor: "o-bright" }, h("span", { textContent: t("brightOption") }), cb)));
@@ -538,6 +532,8 @@ function toast(text) { const el = h("div", { className: "toast", textContent: te
 
 window.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => applyTheme(themeFor(view === "options" ? optScope : view)));
+const ctx = { h, t, T, settings, saveSettings, go, header, openSheet, closeSheet, VIEWS, fab, lsGet, lsSet, toast, NATIVE, pickPhoto, decodeImage, view: () => view, render };
+if (window.FoodUI) FoodUI.install(ctx);
 applyTheme(settings.theme);
 render();
 })();
