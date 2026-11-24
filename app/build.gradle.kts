@@ -47,4 +47,5 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
 }
