@@ -1,7 +1,12 @@
 package fr.erwan.scancourses
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -9,7 +14,10 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -18,6 +26,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.webkit.WebViewAssetLoader
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
@@ -28,6 +38,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
@@ -49,6 +62,39 @@ class MainActivity : AppCompatActivity() {
         else sendDocs(names, null)
     }
 
+    // Photo d'assiette (module Calories)
+    private var shotUri: Uri? = null
+    private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val uri = shotUri
+        val name = if (ok && uri != null) saveImage(uri) else null
+        js("window.onPhoto && window.onPhoto(" + (if (name == null) "null" else JSONObject.quote(name)) + ")")
+    }
+
+    // Sélecteur d'image pour les <input type=file> (QR code depuis une photo, etc.)
+    private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        fileCallback?.onReceiveValue(if (uri != null) arrayOf(uri) else null)
+        fileCallback = null
+    }
+
+    // Position pour le module Promos
+    private var geoCallback: GeolocationPermissions.Callback? = null
+    private var geoOrigin: String? = null
+    private val askLocation = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        geoCallback?.invoke(geoOrigin, res.values.any { it }, false)
+        geoCallback = null
+    }
+
+    private fun hasLocation() =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    private fun openExternal(url: String): Boolean = try {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        true
+    } catch (e: Exception) {
+        false
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,11 +111,45 @@ class MainActivity : AppCompatActivity() {
             settings.domStorageEnabled = true
             settings.allowFileAccess = false
             setBackgroundColor(getColor(R.color.bg))
+            settings.setGeolocationEnabled(true)
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(
                     view: WebView,
                     request: WebResourceRequest
                 ): WebResourceResponse? = loader.shouldInterceptRequest(request.url)
+
+                // Les liens vers l'extérieur s'ouvrent dans le navigateur (ou l'appli concernée)
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                    val url = request.url
+                    if (url.host == "appassets.androidplatform.net") return false
+                    openExternal(url.toString())
+                    return true
+                }
+            }
+            webChromeClient = object : WebChromeClient() {
+                override fun onShowFileChooser(
+                    view: WebView,
+                    callback: ValueCallback<Array<Uri>>,
+                    params: WebChromeClient.FileChooserParams
+                ): Boolean {
+                    fileCallback?.onReceiveValue(null)
+                    fileCallback = callback
+                    return try {
+                        pickImage.launch("image/*"); true
+                    } catch (e: Exception) {
+                        fileCallback = null; false
+                    }
+                }
+
+                override fun onGeolocationPermissionsShowPrompt(origin: String, callback: GeolocationPermissions.Callback) {
+                    if (hasLocation()) {
+                        callback.invoke(origin, true, false)
+                    } else {
+                        geoOrigin = origin
+                        geoCallback = callback
+                        askLocation.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
+                    }
+                }
             }
             addJavascriptInterface(Bridge(), "Android")
         }
@@ -184,6 +264,66 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun deleteImage(name: String) {
             if (name.matches(Regex("^[A-Za-z0-9-]+\\.jpg$"))) File(docsDir, name).delete()
+        }
+
+        /** Ouvre un lien, un numéro, une adresse e-mail ou un lieu dans l'appli adaptée. */
+        @JavascriptInterface
+        fun openUrl(url: String): Boolean {
+            val ok = Regex("^(https?|tel|mailto|sms|smsto|geo):.+", RegexOption.IGNORE_CASE).matches(url)
+            if (!ok) return false
+            runOnUiThread { openExternal(url) }
+            return true
+        }
+
+        /** Lecture d'une API publique sans souci de CORS (bases ouvertes Open Food Facts / Open Prices uniquement).
+         *  La réponse revient par window.onHttp(id, statut, texte). */
+        @JavascriptInterface
+        fun httpGet(id: String, url: String) {
+            val allowed = setOf("prices.openfoodfacts.org", "world.openfoodfacts.org", "world.openbeautyfacts.org")
+            val host = try { URL(url).host } catch (e: Exception) { "" }
+            if (!url.startsWith("https://") || host !in allowed) {
+                js("window.onHttp && window.onHttp(" + JSONObject.quote(id) + ",0,\"\")"); return
+            }
+            thread {
+                var code = 0
+                var body = ""
+                try {
+                    val c = URL(url).openConnection() as HttpURLConnection
+                    c.connectTimeout = 12000; c.readTimeout = 15000
+                    c.setRequestProperty("User-Agent", "ScanCourses-Android/3.0")
+                    code = c.responseCode
+                    body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
+                    c.disconnect()
+                } catch (e: Exception) {
+                    code = 0
+                }
+                js("window.onHttp && window.onHttp(" + JSONObject.quote(id) + "," + code + "," + JSONObject.quote(body) + ")")
+            }
+        }
+
+        /** Copie un texte dans le presse-papiers. */
+        @JavascriptInterface
+        fun copy(text: String) {
+            runOnUiThread {
+                val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("Scan Courses", text))
+            }
+        }
+
+        /** Prend une photo avec l'appareil photo ; le nom du fichier revient par window.onPhoto(nom). */
+        @JavascriptInterface
+        fun takePhoto() {
+            runOnUiThread {
+                try {
+                    val dir = File(cacheDir, "shots").apply { mkdirs() }
+                    val f = File(dir, "shot.jpg")
+                    val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.files", f)
+                    shotUri = uri
+                    takePicture.launch(uri)
+                } catch (e: Exception) {
+                    js("window.onPhoto && window.onPhoto(null)")
+                }
+            }
         }
 
         /** Couleur des barres système assortie au fond choisi. */

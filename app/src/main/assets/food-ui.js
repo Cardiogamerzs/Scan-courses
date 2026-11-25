@@ -211,6 +211,10 @@ VIEWS.product = rootEl => {
     info.append(chips);
   }
   hero.append(img, info); wrap.append(hero);
+  if (p.type !== "beauty" && ctx.openPrices) {
+    const pb = h("button", { type: "button", className: "btn full pricebtn", textContent: "🏷️ " + t("pr_compare") });
+    pb.onclick = () => ctx.openPrices(p.code, p.name); wrap.append(h("div", { className: "row", style: "margin-top:10px" }, pb));
+  }
   // Alertes régimes
   if (p.type !== "beauty" && F.diets.length) {
     const d = R.dietChecks(p), bad = F.diets.filter(k => d[k] === "no");
@@ -306,14 +310,39 @@ function envTab(body, p) {
   if (!F.weights.environment) body.append(h("p", { className: "notice", textContent: t("e_notCounted") }));
 }
 function beautyHealth(body, p, sc) {
-  body.append(h("h3", { className: "sect", textContent: t("b_ingredients") }));
-  if (!sc.found.length) body.append(h("p", { className: "sub", textContent: p.inci ? t("b_clean") : t("b_noInci") }));
-  else {
-    const tagTxt = x => ({ ed: t("tg_ed"), cancer1: t("tg_cancer1"), cancer2A: t("tg_cancer2A"), cancer2B: t("tg_cancer2B"), allergen: t("tg_allergen"), irritant: t("tg_irritant"), repro: t("tg_repro") })[x];
-    body.append(h("div", { className: "nlist" }, ...sc.found.map(f => item(f.risk === "high" ? "⛔" : f.risk === "mod" ? "⚠️" : "•", f.name, f.tags.map(tagTxt).filter(Boolean).join(" · ") || t("risk_" + f.risk), null, f.risk === "high" ? LV.high : f.risk === "mod" ? LV.mid : LV.ok))));
+  const C = root.CosmeticDB;
+  const tagTxt = x => ({ ed: t("tg_ed"), cancer1: t("tg_cancer1"), cancer2A: t("tg_cancer2A"), cancer2B: t("tg_cancer2B"), allergen: t("tg_allergen"), irritant: t("tg_irritant"), repro: t("tg_repro"), env: t("tg_env"), preg: t("tg_preg") })[x];
+  const RC = { high: LV.high, mod: LV.mid, low: "#e8c20c", none: LV.low, unk: LV.none };
+  if (!p.inci || !C) {
+    body.append(h("p", { className: "sub", textContent: t("b_noInci") }));
+    body.append(h("p", { className: "notice", textContent: t("b_source") }));
+    return;
   }
-  if (p.inci) body.append(h("details", { className: "ing" }, h("summary", { textContent: t("f_ingredients") }), h("p", { textContent: p.inci })));
-  body.append(h("p", { className: "notice", textContent: t("b_source") }));
+  const comp = C.composition(p.inci);
+  // Résumé : nombre d'ingrédients par niveau de risque
+  const counts = { high: 0, mod: 0, low: 0, none: 0, unk: 0 }; comp.forEach(x => counts[x.lv]++);
+  const sum = h("div", { className: "risksum" });
+  ["high", "mod", "low", "none", "unk"].forEach(k => { if (!counts[k]) return; const c = h("span", { className: "rchip" }, dot(RC[k]), h("b", { textContent: counts[k] }), " " + t("rk_" + k)); sum.append(c); });
+  body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("b_composition") }), h("span", { textContent: t("b_nIng", comp.length) })), sum,
+    h("p", { className: "sub", textContent: t("b_tapHelp") }));
+  // Ingrédients à risque d'abord, puis l'ordre de la liste
+  const ord = { high: 0, mod: 1, low: 2, none: 3, unk: 4 };
+  const sorted = comp.map((x, i) => ({ ...x, i })).sort((a, b) => ord[a.lv] - ord[b.lv] || a.i - b.i);
+  const list = h("div", { className: "nlist" });
+  sorted.forEach(x => {
+    const e = x.entry;
+    const sub = e ? [e.fn, ...(e.tags || []).map(tagTxt).filter(Boolean)].join(" · ") : t("rk_unkSub");
+    const det = [];
+    if (e) {
+      det.push(h("p", { className: "why" }, h("b", { textContent: t("rk_" + e.lv) + (e.name.toLowerCase() !== x.label.toLowerCase() ? " · " + e.name : "") + " — " }), e.why));
+      if (e.src && e.src.length) det.push(h("div", { className: "srcs" }, h("small", { textContent: t("b_sources") }), ...e.src.map(k => h("small", { textContent: "• " + (C.SOURCES[k] || k) }))));
+    } else det.push(h("p", { className: "why", textContent: t("rk_unkWhy") }));
+    list.append(item("", x.label, sub, t("rk_" + x.lv + "S"), RC[x.lv], det));
+  });
+  body.append(list);
+  if (counts.high + counts.mod === 0) body.append(h("p", { className: "sub", textContent: t("b_clean") }));
+  body.append(h("details", { className: "ing" }, h("summary", { textContent: t("f_ingredients") }), h("p", { textContent: p.inci })));
+  body.append(h("p", { className: "notice", textContent: t("b_source2") }));
 }
 function altTab(body, p) {
   body.append(h("p", { className: "sub", textContent: t("a_help") }));
@@ -373,6 +402,7 @@ function prefsEditor() {
   box.append(h("div", { className: "optcard" }, h("h3", { textContent: t("ob_special") }), tg("pregnancy", t("ob_preg")), tg("baby", t("ob_baby"))));
   return box;
 }
+ctx.openProduct = code => openProduct(code);
 ctx.foodOptions = box => {
   box.append(prefsEditor());
   const clear = h("button", { type: "button", className: "btn danger full", textContent: t("f_clearHistory") });

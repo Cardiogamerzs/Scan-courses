@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "2.0";
+const APP_VERSION = "3.0";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -43,6 +43,7 @@ function applyTheme(name) {
 }
 function themeFor(view) {
   if (view === "product") view = "food";
+  if (ctx.viewModule && ctx.viewModule[view]) view = ctx.viewModule[view];
   const mod = settings.modTheme[view];
   return mod && mod !== "home" ? mod : settings.theme;
 }
@@ -56,6 +57,7 @@ window.onBack = () => {
   if ($("#layer").firstChild) { closeSheet(); return true; }
   if (view === "options") { go(optScope === "home" ? "home" : optScope); return true; }
   if (ctx.foodBack && ctx.foodBack()) return true;
+  for (const hook of ctx.backHooks) if (hook()) return true;
   if (view !== "home") { go("home"); return true; }
   return false;
 };
@@ -93,7 +95,8 @@ VIEWS.home = root => {
     const b = h("button", { type: "button", className: "module" });
     b.style.setProperty("--m1", color);
     const ico = h("div", { className: "ico" }); ico.innerHTML = ICONS[key];
-    b.append(ico, h("div", { className: "txt" }, h("b", { textContent: title }), h("span", { textContent: sub })), badge ? h("div", { className: "badge", textContent: badge }) : null);
+    b.append(ico, h("div", { className: "txt" }, h("b", { textContent: title }), h("span", { textContent: sub })));
+    if (badge) b.append(h("div", { className: "badge", textContent: badge }));
     b.onclick = () => go(key); return b;
   };
   mods.append(
@@ -101,6 +104,8 @@ VIEWS.home = root => {
     mk("food", "linear-gradient(135deg,#1f9d55,#0f766e)", t("modFood"), t("modFoodSub"), null),
     mk("docs", "linear-gradient(135deg,#3b5bdb,#6741d9)", t("modDocs"), t("modDocsSub"), t("nDocs", docs.length))
   );
+  // Modules ajoutés par les autres fichiers (QR, promos, recettes, équilibre, calories)
+  for (const m of ctx.modules) { ICONS[m.key] = m.icon; mods.append(mk(m.key, m.color, m.title(), m.sub(), m.badge ? m.badge() : null)); }
   wrap.append(hd, mods, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
   root.append(wrap);
 };
@@ -226,7 +231,7 @@ function showCard(id) {
     sh.append(band, h("h2", { textContent: c.name }), h("p", { className: "sub", textContent: t("showCode") }), box,
       h("p", { className: "tip", textContent: NATIVE && settings.bright ? t("brightTip") : t("brightTipWeb") }));
     const copy = h("button", { type: "button", className: "btn", textContent: t("copyNumber") });
-    copy.onclick = async () => { try { await navigator.clipboard.writeText(c.number); copy.textContent = t("copied"); } catch (e) { copy.textContent = t("copyFail"); } };
+    copy.onclick = async () => { if (NATIVE && NATIVE.copy) { try { NATIVE.copy(c.number); copy.textContent = t("copied"); return; } catch (e) {} } try { await navigator.clipboard.writeText(c.number); copy.textContent = t("copied"); } catch (e) { copy.textContent = t("copyFail"); } };
     const edit = h("button", { type: "button", className: "btn", textContent: t("edit") }); edit.onclick = () => editCard(c);
     const close = h("button", { type: "button", className: "btn primary", textContent: t("close") }); close.onclick = closeSheet;
     sh.append(h("div", { className: "row" }, copy, edit, close), deleteZone(c.name, t("deleteCard"), () => removeCard(c)));
@@ -448,6 +453,7 @@ let optScope = "home";
 function openOptions(scope) { optScope = scope; go("options"); }
 VIEWS.options = root => {
   const titles = { home: t("general"), cards: t("modCards"), food: t("modFood"), docs: t("modDocs") };
+  for (const m of ctx.modules) titles[m.key] = m.title();
   const wrap = h("div", { className: "wrap" });
   wrap.append(h("header", {}, header(t("optionsOf", titles[optScope]), { back: true })));
   const opts = h("div", { className: "opts" });
@@ -468,6 +474,7 @@ VIEWS.options = root => {
       opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("sortCards") }), h("div", { className: "f", style: "margin:0" }, sel)));
     }
     if (optScope === "food" && ctx.foodOptions) ctx.foodOptions(opts);
+    const mod = ctx.modules.find(m => m.key === optScope); if (mod && mod.options) mod.options(opts);
     if (optScope === "cards" || optScope === "docs") {
       const cb = h("input", { type: "checkbox", id: "o-bright", checked: settings.bright }); cb.onchange = () => { settings.bright = cb.checked; saveSettings(); };
       opts.append(h("div", { className: "optcard" }, h("label", { className: "toggle", htmlFor: "o-bright" }, h("span", { textContent: t("brightOption") }), cb)));
@@ -532,8 +539,20 @@ function toast(text) { const el = h("div", { className: "toast", textContent: te
 
 window.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => applyTheme(themeFor(view === "options" ? optScope : view)));
-const ctx = { h, t, T, settings, saveSettings, go, header, openSheet, closeSheet, VIEWS, fab, lsGet, lsSet, toast, NATIVE, pickPhoto, decodeImage, view: () => view, render };
+// Liens et presse-papiers (passent par Android quand l'appli tourne sur le téléphone)
+function openUrl(url) {
+  if (NATIVE && NATIVE.openUrl) { try { if (NATIVE.openUrl(url)) return; } catch (e) {} }
+  window.open(url, "_blank", "noopener");
+}
+async function copyText(text) {
+  if (NATIVE && NATIVE.copy) { try { NATIVE.copy(text); toast(t("copied")); return true; } catch (e) {} }
+  try { await navigator.clipboard.writeText(text); toast(t("copied")); return true; } catch (e) { toast(t("copyFail")); return false; }
+}
+function themePickerFor(scope) { return themePicker(t("moduleBg"), settings.modTheme[scope] || "home", v => { settings.modTheme[scope] = v; saveSettings(); applyTheme(themeFor(scope)); render(); }, true); }
+const ctx = { h, t, T, settings, saveSettings, go, header, openSheet, closeSheet, VIEWS, fab, lsGet, lsSet, toast, NATIVE, pickPhoto, decodeImage, view: () => view, render,
+  modules: [], backHooks: [], viewModule: {}, openUrl, copyText, codeSVG, loadScript, bright, deleteZone, themePickerFor, imgSrc };
 if (window.FoodUI) FoodUI.install(ctx);
+for (const ext of window.SC_EXT || []) ext(ctx);
 applyTheme(settings.theme);
 render();
 })();

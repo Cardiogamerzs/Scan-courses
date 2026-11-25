@@ -265,6 +265,16 @@ const COSMETIC = [
   [/\bbenzyl salicylate|limonene|linalool|citral|geraniol|eugenol|coumarin|cinnamal/, "low", ["allergen"], "Allergène de parfum"]
 ];
 function cosmeticIngredients(p) {
+  const C = root.CosmeticDB;
+  if (C) {
+    // Base détaillée : un résultat par ingrédient à risque (faible, modéré, fort), sans doublon
+    const seen = new Set(), found = [];
+    for (const x of C.composition(p.inci || "")) {
+      if (!x.entry || x.entry.lv === "none" || seen.has(x.entry.name)) continue;
+      seen.add(x.entry.name); found.push({ name: x.entry.name, risk: x.entry.lv, tags: x.entry.tags });
+    }
+    return found;
+  }
   const list = (p.inci || "").toLowerCase();
   const found = [];
   for (const [re, r, tags, name] of COSMETIC) if (re.test(list)) found.push({ name, risk: r, tags });

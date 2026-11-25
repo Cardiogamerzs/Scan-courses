@@ -8,7 +8,7 @@ import readline from "node:readline";
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const assets = path.join(here, "..", "app", "src", "main", "assets");
-for (const f of ["food-rules.js", "food-data.js"]) vm.runInThisContext(fs.readFileSync(path.join(assets, f), "utf8"), { filename: f });
+for (const f of ["cosmetic-db.js", "food-rules.js", "food-data.js"]) vm.runInThisContext(fs.readFileSync(path.join(assets, f), "utf8"), { filename: f });
 const { normFood, normBeauty, indexRow, shardOf } = globalThis.FoodData;
 
 async function build(file, type, norm) {

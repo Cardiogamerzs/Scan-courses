@@ -220,3 +220,93 @@ details.ing p{color:var(--muted);font-size:13px;margin:10px 0 0}
 .wsel{display:flex;background:var(--bg);border-radius:12px;padding:3px;gap:3px}
 .wsel button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px 2px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
 .wsel button[aria-pressed="true"]{background:var(--good);color:#fff}
+
+/* ===== Accueil en grille (8 modules) ===== */
+.modules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.modules .module{flex-direction:column;align-items:flex-start;gap:10px;min-height:150px;padding:16px}
+.modules .module .ico{width:48px;height:48px;border-radius:14px}
+.modules .module b{font-size:17px}
+.modules .module span{font-size:12px}
+.modules .module .badge{position:absolute;top:12px;right:12px;font-size:11px;padding:3px 8px}
+.modules .module:first-child{grid-column:1/-1;flex-direction:row;align-items:center;min-height:110px}
+.modules .module:first-child b{font-size:21px}
+.modules .module:first-child .badge{position:relative;top:auto;right:auto}
+@media (min-width:600px){.modules{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ===== Éléments communs des nouveaux modules ===== */
+.chiprow{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chiprow::-webkit-scrollbar{display:none}
+.fchip{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:8px 13px;font:600 13px var(--f-body);cursor:pointer;white-space:nowrap}
+.fchip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:transparent}
+.stepper{display:flex;align-items:center;gap:6px;flex:none}
+.stepper b{min-width:54px;text-align:center;font-variant-numeric:tabular-nums;font-size:14px}
+.stepper .iconbtn{width:34px;height:34px;font-size:18px;font-weight:700}
+.sizes{display:flex;background:var(--bg);border-radius:10px;padding:3px;gap:3px}
+.sizes button{border:0;background:transparent;border-radius:8px;padding:6px 9px;font:600 12px var(--f-body);color:var(--muted);cursor:pointer}
+.sizes button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.nico:empty{display:none}
+.tip.warn{color:var(--bad);font-weight:600}
+
+/* QR */
+.qrbig{background:linear-gradient(135deg,#0b7285,#1c7ed6)}
+.qrkind{display:flex;align-items:center;gap:10px;font-size:22px;margin:4px 0 12px}
+.qrkind b{font-family:var(--f-display);font-size:22px}
+.qrlines{display:flex;flex-direction:column;gap:10px;background:var(--bg);border-radius:14px;padding:12px 14px}
+.qrline small{display:block;color:var(--muted);font-size:12px;font-weight:600}
+.qrline div{font-size:15px;overflow-wrap:anywhere}
+.qrtext{background:var(--bg);border-radius:14px;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:40vh;overflow:auto}
+textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:14px;padding:12px;font:inherit;resize:vertical}
+
+/* Cosmétiques */
+.risksum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.rchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:5px 11px}
+.why{margin:0;font-size:14px;line-height:1.45}
+.srcs{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.srcs small:first-child{font-weight:700;color:var(--fg)}
+
+/* Recettes */
+.daycard{width:100%;text-align:left;border:0;border-radius:20px;padding:18px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#e8590c,#f59f00);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:4px}
+.daycard small{font-weight:700;opacity:.9}.daycard b{font-family:var(--f-display);font-size:20px}.daycard span{font-size:13px;opacity:.9}
+.rmeta{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;text-align:center}
+.rmeta b{display:block;font-family:var(--f-display);font-size:18px}.rmeta small{color:var(--muted);font-size:12px}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;line-height:1.45}
+.steps li::marker{font-weight:800;color:var(--accent)}
+.shoprow{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+.shoprow input{width:22px;height:22px;accent-color:var(--good);flex:none}
+.shoprow.done b{text-decoration:line-through;color:var(--muted)}
+.nrow.goal .stepper b{color:var(--good)}
+
+/* Manger équilibré */
+.platecard{display:flex;flex-direction:column;align-items:center;gap:10px}
+.plate{display:flex;flex-direction:column;align-items:center;gap:8px}
+.plegend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px;font-weight:600}
+.plegend span{display:inline-flex;align-items:center;gap:6px}
+.menuday{margin-top:10px}
+.menuday h3{text-transform:capitalize}
+.mealrow{display:flex;align-items:center;gap:8px;margin-top:6px}
+.meal{flex:1;min-width:0;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:10px 12px;cursor:pointer;color:var(--fg)}
+.meal small{display:block;color:var(--muted);font-size:12px;font-weight:600}.meal b{display:block;font-size:14px}
+.pregbox{border-color:color-mix(in srgb,#c2255c 35%,var(--line))}
+.pregbox .nlist{margin-top:10px}
+
+/* Calories */
+.platebig{background:linear-gradient(135deg,#c2255c,#f06595)}
+.platephoto{width:100%;max-height:46vh;object-fit:cover;border-radius:20px;display:block;box-shadow:var(--shadow)}
+.kbar{height:12px;border-radius:99px;background:var(--line);overflow:hidden}
+.kbar div{height:100%;background:linear-gradient(90deg,#1f9d55,#e8900c);border-radius:99px;transition:width .3s}
+.pitem{display:flex;flex-direction:column;gap:8px;padding:12px 14px}
+.pctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pihead{display:flex;align-items:flex-start;gap:8px}
+.foodgrid{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.fchip.food{display:flex;flex-direction:column;align-items:flex-start;border-radius:14px;padding:8px 12px;white-space:normal;text-align:left}
+.fchip.food small{color:var(--muted);font-weight:500;font-size:11px}
+
+/* Promos */
+.pricebig{background:linear-gradient(135deg,#f03e3e,#fd7e14)}
+.price{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.price b{font-family:var(--f-display);font-size:17px;font-variant-numeric:tabular-nums}
+.price s{font-size:12px;color:var(--muted)}
+.bestprice{margin-top:14px;border-radius:20px;padding:16px;color:#fff;background:linear-gradient(135deg,#1f9d55,#0f766e);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:2px}
+.bestprice b{font-family:var(--f-display);font-size:30px}.bestprice small{font-weight:700;opacity:.9}.bestprice span{font-size:14px;opacity:.95}
+.pricebtn{border-color:color-mix(in srgb,#f03e3e 40%,var(--line))}
+[hidden]{display:none!important}
