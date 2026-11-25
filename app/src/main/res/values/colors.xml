@@ -1,5 +1,5 @@
 <resources>
     <color name="bg">#F3F1EE</color>
-    <color name="icon_bg">#FF5A36</color>
+    <color name="icon_bg">#FFE8EE</color>
     <bool name="light_bars">true</bool>
 </resources>

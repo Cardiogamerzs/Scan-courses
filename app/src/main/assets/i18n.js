@@ -1,7 +1,7 @@
 // Textes de l'appli en français, anglais et espagnol.
 window.I18N = {
   fr: {
-    appName: "Scan Courses",
+    appName: "Sovée",
     hello: "Que veux-tu faire ?",
     modCards: "Cartes de fidélité", modCardsSub: "Tes cartes, prêtes pour la caisse",
     modFood: "Scan alimentaire", modFoodSub: "Notes santé et environnement des produits",
@@ -43,14 +43,14 @@ window.I18N = {
     foodSoonTitle: "Le Scan alimentaire arrive dans la version 3 🥕",
     foodSoonList: ["Note sur 100 selon tes priorités", "Sucre, graisses, sel pour 100 g en vert, orange ou rouge", "Additifs à risque, perturbateurs endocriniens, cancérogènes", "Conseils grossesse et moins de 2 ans", "Végétarien, vegan, gluten…", "Historique, recherche, classements, alternatives"],
     // Options
-    optionsOf: s => "Options · " + s, general: "Général", language: "Langue", background: "Couleur de fond",
+    optionsOf: s => "Options · " + s, general: "Général", language: "Langue", background: "Fond d’écran",
     sameAsHome: "Comme l'accueil", sortCards: "Ordre des cartes", sortUses: "Les plus utilisées d'abord", sortAlpha: "Ordre alphabétique",
-    brightOption: "Luminosité au max quand j'affiche un code", moduleBg: "Couleur de fond de ce module",
+    brightOption: "Luminosité au max quand j'affiche un code", moduleBg: "Fond d’écran de ce module",
     themes: { sand: "Sable", white: "Blanc", mint: "Menthe", sky: "Ciel", lavender: "Lavande", peach: "Pêche", night: "Nuit", auto: "Auto (comme le téléphone)" },
-    version: v => "Scan Courses · version " + v
+    version: v => "Sovée · version " + v
   },
   en: {
-    appName: "Scan Courses",
+    appName: "Sovée",
     hello: "What would you like to do?",
     modCards: "Loyalty cards", modCardsSub: "Your cards, ready for checkout",
     modFood: "Food scanner", modFoodSub: "Health and environment scores",
@@ -89,14 +89,14 @@ window.I18N = {
     docTypes: { id: "ID card", passport: "Passport", license: "Driving licence", registration: "Car registration", insurance: "Insurance certificate", health: "Health insurance card", other: "Other document" },
     foodSoonTitle: "The food scanner is coming in version 3 🥕",
     foodSoonList: ["Score out of 100 based on your priorities", "Sugar, fat, salt per 100 g in green, orange or red", "Risky additives, endocrine disruptors, carcinogens", "Advice for pregnancy and under 2s", "Vegetarian, vegan, gluten…", "History, search, rankings, alternatives"],
-    optionsOf: s => "Settings · " + s, general: "General", language: "Language", background: "Background colour",
+    optionsOf: s => "Settings · " + s, general: "General", language: "Language", background: "Wallpaper",
     sameAsHome: "Same as home", sortCards: "Card order", sortUses: "Most used first", sortAlpha: "Alphabetical",
-    brightOption: "Max brightness when showing a code", moduleBg: "Background colour for this module",
+    brightOption: "Max brightness when showing a code", moduleBg: "Wallpaper for this module",
     themes: { sand: "Sand", white: "White", mint: "Mint", sky: "Sky", lavender: "Lavender", peach: "Peach", night: "Night", auto: "Auto (follow phone)" },
-    version: v => "Scan Courses · version " + v
+    version: v => "Sovée · version " + v
   },
   es: {
-    appName: "Scan Courses",
+    appName: "Sovée",
     hello: "¿Qué quieres hacer?",
     modCards: "Tarjetas de fidelidad", modCardsSub: "Tus tarjetas, listas para la caja",
     modFood: "Escáner de alimentos", modFoodSub: "Notas de salud y medio ambiente",
@@ -135,10 +135,10 @@ window.I18N = {
     docTypes: { id: "DNI / carné de identidad", passport: "Pasaporte", license: "Carné de conducir", registration: "Permiso de circulación", insurance: "Certificado de seguro", health: "Tarjeta sanitaria", other: "Otro documento" },
     foodSoonTitle: "El escáner de alimentos llega en la versión 3 🥕",
     foodSoonList: ["Nota sobre 100 según tus prioridades", "Azúcar, grasas y sal por 100 g en verde, naranja o rojo", "Aditivos de riesgo, disruptores endocrinos, cancerígenos", "Consejos para embarazo y menores de 2 años", "Vegetariano, vegano, gluten…", "Historial, búsqueda, clasificaciones, alternativas"],
-    optionsOf: s => "Ajustes · " + s, general: "General", language: "Idioma", background: "Color de fondo",
+    optionsOf: s => "Ajustes · " + s, general: "General", language: "Idioma", background: "Fondo de pantalla",
     sameAsHome: "Como el inicio", sortCards: "Orden de las tarjetas", sortUses: "Las más usadas primero", sortAlpha: "Orden alfabético",
-    brightOption: "Brillo máximo al mostrar un código", moduleBg: "Color de fondo de este módulo",
+    brightOption: "Brillo máximo al mostrar un código", moduleBg: "Fondo de este módulo",
     themes: { sand: "Arena", white: "Blanco", mint: "Menta", sky: "Cielo", lavender: "Lavanda", peach: "Melocotón", night: "Noche", auto: "Auto (como el teléfono)" },
-    version: v => "Scan Courses · versión " + v
+    version: v => "Sovée · versión " + v
   }
 };

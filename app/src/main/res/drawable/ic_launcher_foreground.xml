@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Une carte de fidélité blanche avec son code-barres, sur fond corail -->
+<!-- Sovée : un cœur tout rond qui sourit -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M33,38h42a5,5 0,0 1,5 5v22a5,5 0,0 1,-5 5h-42a5,5 0,0 1,-5 -5v-22a5,5 0,0 1,5 -5z" />
-    <path android:fillColor="#1B1D26"
-        android:pathData="M36,46h2v17h-2zM40,46h1v17h-1zM43,46h3v17h-3zM48,46h1v17h-1zM51,46h2v17h-2zM55,46h1v17h-1zM58,46h3v17h-3zM63,46h1v17h-1zM66,46h2v17h-2zM70,46h1v17h-1z" />
+    <group android:translateX="20" android:translateY="24" android:scaleX="0.5667" android:scaleY="0.5667">
+        <path android:fillColor="#F0446A"
+            android:pathData="M60,104C30,86 6,66 6,38C6,20 20,6 37,6C47,6 55,11 60,19C65,11 73,6 83,6C100,6 114,20 114,38C114,66 90,86 60,104Z" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.45"
+            android:pathData="M22.1,29.1a12,7 -25 1,0 21.8,-10.2a12,7 -25 1,0 -21.8,10.2z" />
+        <path android:fillColor="#FFB3C1"
+            android:pathData="M23.5,63a7.5,4.6 0 1,0 15,0a7.5,4.6 0 1,0 -15,0z M81.5,63a7.5,4.6 0 1,0 15,0a7.5,4.6 0 1,0 -15,0z" />
+        <path android:fillColor="#3A1020"
+            android:pathData="M38.8,50a5.2,6.6 0 1,0 10.4,0a5.2,6.6 0 1,0 -10.4,0z M70.8,50a5.2,6.6 0 1,0 10.4,0a5.2,6.6 0 1,0 -10.4,0z M48,61Q60,78 72,61Q60,66 48,61Z" />
+        <path android:fillColor="#FFFFFF"
+            android:pathData="M43.9,47.6a1.9,1.9 0 1,0 3.8,0a1.9,1.9 0 1,0 -3.8,0z M75.9,47.6a1.9,1.9 0 1,0 3.8,0a1.9,1.9 0 1,0 -3.8,0z" />
+        <path android:fillColor="#FF8FA3"
+            android:pathData="M55,69.5a5,2.6 0 1,0 10,0a5,2.6 0 1,0 -10,0z" />
+    </group>
 </vector>

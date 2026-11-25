@@ -242,4 +242,49 @@ add("es", {
   k_menuHelp: "Tu menú se renueva solo cada lunes, elegido entre más de 1000 recetas equilibradas: 2 pescados, legumbres, aves y poca carne roja. Toca 🔄 para cambiar una comida.",
   k_cuis_fr: "Francia", k_cuis_mag: "Magreb", k_cuis_it: "Italia", k_cuis_es: "España", k_cuis_us: "EE. UU.", k_cuis_mx: "México", k_cuis_as: "Asia", k_cuis_in: "India", k_cuis_med: "Grecia, Líbano, Turquía", k_cuis_af: "África", k_cuis_ww: "Saludable y mundo"
 });
+add("fr", {
+  hiMorning: "Bonjour{name} ☀️", hiAfternoon: "Bon après-midi{name} 🌤️", hiEvening: "Bonsoir{name} 🌙", hiNight: "Bonne nuit{name} 💤",
+  petLabel: "Sovée, ta mascotte : touche-la pour un autre conseil", langNow: "Langue : français 🇫🇷", hello: "Tes modules",
+  todayLunch: "Ce midi", todayDinner: "Ce soir", todayShop: "Liste de courses", nItems: n => n + (n > 1 ? " articles" : " article"), saved: "Enregistré ✓",
+  nameTitle: "Ton prénom", namePh: "Ex. : Erwan", nameHelp: "Sovée l'utilise pour te dire bonjour. Il reste sur ton téléphone.",
+  wp_colors: "Couleurs", wp_gradients: "Dégradés", wp_patterns: "Motifs", wp_photoGroup: "Ta photo", wp_photo: "Ma photo", wp_choose: "Choisir dans la galerie", wp_change: "Changer de photo", wp_fail: "Impossible d'utiliser cette photo 😕",
+  tips: ["Touche-moi pour un autre conseil 💗", "Un fruit et un légume à chaque repas, c'est déjà une belle victoire 🥕🍎", "Les légumes secs (lentilles, pois chiches) remplacent très bien la viande 2 fois par semaine.",
+    "Scanne un produit avant de l'acheter : je te dis ce qu'il y a vraiment dedans 🔍", "Ton menu de la semaine se renouvelle tout seul chaque lundi 📅", "Bois de l'eau tout au long de la journée 💧",
+    "Le poisson, c'est 2 fois par semaine dont 1 poisson gras (saumon, sardine, maquereau) 🐟", "Ajoute les ingrédients d'une recette à ta liste de courses en un seul geste 🛒",
+    "30 minutes de marche par jour, ton cœur (et moi) te disent merci ❤️", "Les cartes de fidélité s'affichent en grand à la caisse, luminosité au maximum 💳",
+    "Change mon fond d'écran dans les options ⚙️ : couleurs, dégradés ou ta propre photo 🖼️", "Des féculents complets (riz complet, pâtes complètes) tiennent mieux au ventre 🍝",
+    "Un plein de courses moins cher ? Compare les prix autour de toi avec Promos & prix 🏷️", "Les desserts maison sont souvent moins sucrés que ceux du commerce 🍰",
+    "Plus de 2 400 recettes t'attendent, filtre par cuisine du monde 🌍", "Le sel se cache surtout dans le pain, les plats préparés et la charcuterie 🧂"],
+});
+Object.assign(window.I18N.fr.themes, { rose: "Rose", lemon: "Citron", coral: "Corail", sage: "Sauge", ocean: "Océan", forest: "Forêt", plum: "Prune", g_sunrise: "Aurore", g_lagoon: "Lagon", g_meadow: "Prairie", g_candy: "Bonbon", g_lilac: "Lilas", g_citrus: "Agrumes", g_aurora: "Aurore boréale", g_dusk: "Crépuscule", g_deepsea: "Grand bleu", p_hearts: "Petits cœurs", p_dots: "Pois", p_waves: "Vagues", p_fruits: "Fruits", p_stars: "Nuit étoilée" });
+add("en", {
+  hiMorning: "Good morning{name} ☀️", hiAfternoon: "Good afternoon{name} 🌤️", hiEvening: "Good evening{name} 🌙", hiNight: "Good night{name} 💤",
+  petLabel: "Sovée, your mascot: tap for another tip", langNow: "Language: English 🇬🇧", hello: "Your modules",
+  todayLunch: "Lunch today", todayDinner: "Dinner tonight", todayShop: "Shopping list", nItems: n => n + (n > 1 ? " items" : " item"), saved: "Saved ✓",
+  nameTitle: "Your first name", namePh: "E.g. Erwan", nameHelp: "Sovée uses it to say hello. It stays on your phone.",
+  wp_colors: "Colours", wp_gradients: "Gradients", wp_patterns: "Patterns", wp_photoGroup: "Your photo", wp_photo: "My photo", wp_choose: "Choose from gallery", wp_change: "Change photo", wp_fail: "Can't use this photo 😕",
+  tips: ["Tap me for another tip 💗", "A fruit and a vegetable at every meal is already a great win 🥕🍎", "Pulses (lentils, chickpeas) are a great swap for meat twice a week.",
+    "Scan a product before buying: I'll tell you what's really inside 🔍", "Your weekly menu renews itself every Monday 📅", "Drink water throughout the day 💧",
+    "Fish twice a week, including one oily fish (salmon, sardine, mackerel) 🐟", "Add a recipe's ingredients to your shopping list in one tap 🛒",
+    "30 minutes of walking a day: your heart (and I) say thanks ❤️", "Loyalty cards show up big at the checkout, at full brightness 💳",
+    "Change my wallpaper in the options ⚙️: colours, gradients or your own photo 🖼️", "Whole grains (brown rice, wholewheat pasta) keep you full longer 🍝",
+    "Cheaper shopping? Compare prices near you with Deals & prices 🏷️", "Homemade desserts are often less sweet than shop-bought ones 🍰",
+    "Over 2,400 recipes are waiting, filter by world cuisine 🌍", "Salt hides mostly in bread, ready meals and cured meats 🧂"],
+});
+Object.assign(window.I18N.en.themes, { rose: "Rose", lemon: "Lemon", coral: "Coral", sage: "Sage", ocean: "Ocean", forest: "Forest", plum: "Plum", g_sunrise: "Sunrise", g_lagoon: "Lagoon", g_meadow: "Meadow", g_candy: "Candy", g_lilac: "Lilac", g_citrus: "Citrus", g_aurora: "Northern lights", g_dusk: "Dusk", g_deepsea: "Deep sea", p_hearts: "Little hearts", p_dots: "Polka dots", p_waves: "Waves", p_fruits: "Fruits", p_stars: "Starry night" });
+add("es", {
+  hiMorning: "Buenos días{name} ☀️", hiAfternoon: "Buenas tardes{name} 🌤️", hiEvening: "Buenas noches{name} 🌙", hiNight: "Que descanses{name} 💤",
+  petLabel: "Sovée, tu mascota: tócala para otro consejo", langNow: "Idioma: español 🇪🇸", hello: "Tus módulos",
+  todayLunch: "Al mediodía", todayDinner: "Esta noche", todayShop: "Lista de la compra", nItems: n => n + (n > 1 ? " artículos" : " artículo"), saved: "Guardado ✓",
+  nameTitle: "Tu nombre", namePh: "Ej.: Erwan", nameHelp: "Sovée lo usa para saludarte. Se queda en tu teléfono.",
+  wp_colors: "Colores", wp_gradients: "Degradados", wp_patterns: "Motivos", wp_photoGroup: "Tu foto", wp_photo: "Mi foto", wp_choose: "Elegir de la galería", wp_change: "Cambiar foto", wp_fail: "No se puede usar esta foto 😕",
+  tips: ["Tócame para otro consejo 💗", "Una fruta y una verdura en cada comida ya es una gran victoria 🥕🍎", "Las legumbres sustituyen muy bien a la carne dos veces por semana.",
+    "Escanea un producto antes de comprarlo: te digo lo que lleva de verdad 🔍", "Tu menú semanal se renueva solo cada lunes 📅", "Bebe agua a lo largo del día 💧",
+    "Pescado dos veces por semana, una de ellas azul (salmón, sardina, caballa) 🐟", "Añade los ingredientes de una receta a tu lista en un toque 🛒",
+    "30 minutos de paseo al día: tu corazón (y yo) te lo agradecemos ❤️", "Las tarjetas de fidelidad se muestran en grande en la caja 💳",
+    "Cambia mi fondo en las opciones ⚙️: colores, degradados o tu propia foto 🖼️", "Los cereales integrales sacian más tiempo 🍝",
+    "¿Compra más barata? Compara precios cerca de ti con Ofertas y precios 🏷️", "Los postres caseros suelen llevar menos azúcar 🍰",
+    "Más de 2400 recetas te esperan, filtra por cocina del mundo 🌍", "La sal se esconde sobre todo en el pan, los platos preparados y los embutidos 🧂"],
+});
+Object.assign(window.I18N.es.themes, { rose: "Rosa", lemon: "Limón", coral: "Coral", sage: "Salvia", ocean: "Océano", forest: "Bosque", plum: "Ciruela", g_sunrise: "Amanecer", g_lagoon: "Laguna", g_meadow: "Pradera", g_candy: "Caramelo", g_lilac: "Lila", g_citrus: "Cítricos", g_aurora: "Aurora boreal", g_dusk: "Crepúsculo", g_deepsea: "Mar profundo", p_hearts: "Corazones", p_dots: "Lunares", p_waves: "Olas", p_fruits: "Frutas", p_stars: "Noche estrellada" });
 })();

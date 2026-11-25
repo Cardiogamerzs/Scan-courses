@@ -334,7 +334,7 @@ TOP.forEach(([, n, ing]) => {
   add(n, k === 5 ? "es" : k === 10 ? "mag" : "fr", "matin", 15, 2, k === 10 || k === 7 ? ["rapide"] : ["eq", "rapide"], parseIng(ing), ["Prépare les ingrédients.", "Fais griller, cuire ou assemble selon la recette.", "Sers aussitôt."]));
 
 /* ---------- Recettes écrites à la main (recipes-hand.js) ---------- */
-(root.RECIPES_HAND || []).forEach(r => {
+(root.RECIPES_HAND || []).concat(root.RECIPES_MORE || []).forEach(r => {
   const [n, w, c, t, s, tags, ing, steps] = r;
   add(n, w, c, t, s, tags ? tags.split(",") : [], parseIng(ing), steps.split("|"));
 });

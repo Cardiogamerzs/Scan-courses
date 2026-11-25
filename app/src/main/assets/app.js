@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "3.1";
+const APP_VERSION = "4.0";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -22,10 +22,45 @@ const THEMES = {
   sky:      { bg: "#e8f1fb", surface: "#ffffff", fg: "#14202e", muted: "#5b6b7e", line: "#d4e2f2", dark: false },
   lavender: { bg: "#f0ecfa", surface: "#ffffff", fg: "#1e1830", muted: "#6d6584", line: "#e0d9f2", dark: false },
   peach:    { bg: "#fdeee6", surface: "#ffffff", fg: "#2a1a14", muted: "#7d655b", line: "#f3dbcf", dark: false },
-  night:    { bg: "#14161f", surface: "#1e212d", fg: "#f2f1ee", muted: "#9a9eae", line: "#2c3040", dark: true }
+  night:    { bg: "#14161f", surface: "#1e212d", fg: "#f2f1ee", muted: "#9a9eae", line: "#2c3040", dark: true },
+  rose:     { bg: "#fdebf1", surface: "#ffffff", fg: "#2a141c", muted: "#7d5f6a", line: "#f3d6e0", dark: false },
+  lemon:    { bg: "#fbf5d8", surface: "#ffffff", fg: "#26220f", muted: "#77704f", line: "#efe6bd", dark: false },
+  coral:    { bg: "#ffe3d9", surface: "#ffffff", fg: "#2b160f", muted: "#80614f", line: "#f6cfc0", dark: false },
+  sage:     { bg: "#e7eee2", surface: "#ffffff", fg: "#1b2418", muted: "#64705e", line: "#d3dfcc", dark: false },
+  ocean:    { bg: "#0f2233", surface: "#17314a", fg: "#eef5fb", muted: "#93a9bd", line: "#24425e", dark: true },
+  forest:   { bg: "#12241a", surface: "#1b3326", fg: "#eef6f0", muted: "#94ac9c", line: "#284634", dark: true },
+  plum:     { bg: "#221428", surface: "#311d39", fg: "#f6eef8", muted: "#b09cb8", line: "#432a4d", dark: true }
 };
-const THEME_ORDER = ["sand", "white", "mint", "sky", "lavender", "peach", "night", "auto"];
+/* Fonds d'écran : dégradés et motifs (palette de base + image de fond) */
+const svgUrl = s => 'url("data:image/svg+xml,' + encodeURIComponent(s) + '")';
+const HEART_P = "M60 104C30 86 6 66 6 38C6 20 20 6 37 6C47 6 55 11 60 19C65 11 73 6 83 6C100 6 114 20 114 38C114 66 90 86 60 104Z";
+const WALLS = {
+  g_sunrise:  { base: "peach", wall: "linear-gradient(165deg,#ffe0d6 0%,#ffd6e5 50%,#e8dcff 100%)", bar: "#ffe0d6" },
+  g_lagoon:   { base: "sky", wall: "linear-gradient(165deg,#d6f5ef 0%,#d8e8ff 100%)", bar: "#d6f5ef" },
+  g_meadow:   { base: "mint", wall: "linear-gradient(165deg,#eef8d8 0%,#d4f1e3 100%)", bar: "#eef8d8" },
+  g_candy:    { base: "rose", wall: "linear-gradient(165deg,#ffe1f0 0%,#fff1d4 100%)", bar: "#ffe1f0" },
+  g_lilac:    { base: "lavender", wall: "linear-gradient(165deg,#ece3ff 0%,#ffe3f1 100%)", bar: "#ece3ff" },
+  g_citrus:   { base: "lemon", wall: "linear-gradient(165deg,#fff6c9 0%,#ffe0c2 100%)", bar: "#fff6c9" },
+  g_aurora:   { base: "night", wall: "linear-gradient(165deg,#0f1d33 0%,#22144a 55%,#0d2f2b 100%)", bar: "#0f1d33" },
+  g_dusk:     { base: "plum", wall: "linear-gradient(165deg,#2b1330 0%,#40192a 50%,#1a1630 100%)", bar: "#2b1330" },
+  g_deepsea:  { base: "ocean", wall: "linear-gradient(165deg,#0b2a3f 0%,#0f1f3a 100%)", bar: "#0b2a3f" },
+  p_hearts:   { base: "rose", wall: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56"><path transform="translate(8 8) scale(.13)" d="' + HEART_P + '" fill="#ffc6d3"/><path transform="translate(36 34) scale(.09)" d="' + HEART_P + '" fill="#ffd9e2"/></svg>') + " 0 0/56px 56px, #fff0f4", bar: "#fff0f4" },
+  p_dots:     { base: "sky", wall: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><circle cx="7" cy="7" r="3" fill="#cfdcf6"/><circle cx="21" cy="21" r="3" fill="#cfdcf6"/></svg>') + " 0 0/28px 28px, #eef3fd", bar: "#eef3fd" },
+  p_waves:    { base: "mint", wall: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="24"><path d="M0 12q10-10 20 0t20 0 20 0 20 0" fill="none" stroke="#c9e8d8" stroke-width="3"/></svg>') + " 0 0/80px 24px, #eaf6f0", bar: "#eaf6f0" },
+  p_fruits:   { base: "lemon", wall: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90"><circle cx="20" cy="22" r="9" fill="#ffd6a8"/><path d="M20 13q3-6 8-5" stroke="#9bd18c" stroke-width="3" fill="none"/><circle cx="66" cy="62" r="7" fill="#ffc2c2"/><circle cx="74" cy="66" r="7" fill="#ffc2c2"/><path d="M70 56l3-8" stroke="#9bd18c" stroke-width="2.5"/></svg>') + " 0 0/90px 90px, #fffaf0", bar: "#fffaf0" },
+  p_stars:    { base: "night", wall: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><circle cx="12" cy="15" r="1.4" fill="#ffffff" opacity=".55"/><circle cx="48" cy="40" r="1" fill="#ffffff" opacity=".4"/><path d="M58 10l1.5 3.5 3.5 1.5-3.5 1.5-1.5 3.5-1.5-3.5-3.5-1.5 3.5-1.5z" fill="#ffe08a" opacity=".6"/><circle cx="25" cy="58" r="1.2" fill="#ffffff" opacity=".5"/></svg>') + " 0 0/70px 70px, #121630", bar: "#121630" }
+};
+const THEME_ORDER = ["sand", "white", "rose", "peach", "coral", "lemon", "mint", "sage", "sky", "lavender", "night", "ocean", "forest", "plum", "auto"];
+const WALL_ORDER = Object.keys(WALLS);
+const PHOTO_KEY = "sc-wall-photo";
 function resolveTheme(name) {
+  if (name === "photo") {
+    const img = lsGet(PHOTO_KEY, null);
+    if (img) { const dark = !!settings.photoDark, base = dark ? THEMES.night : THEMES.sand, veil = dark ? "rgba(10,12,20,.45)" : "rgba(255,255,255,.35)";
+      return Object.assign({}, base, { wall: "linear-gradient(" + veil + "," + veil + "), url(" + img + ") center/cover no-repeat", bar: base.bg }); }
+    name = "sand";
+  }
+  if (WALLS[name]) return Object.assign({}, THEMES[WALLS[name].base], { wall: WALLS[name].wall, bar: WALLS[name].bar });
   if (name === "auto" || !THEMES[name]) {
     const dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
     return THEMES[name] || (dark ? THEMES.night : THEMES.sand);
@@ -35,11 +70,11 @@ function resolveTheme(name) {
 function applyTheme(name) {
   const th = resolveTheme(name), r = document.documentElement.style;
   r.setProperty("--bg", th.bg); r.setProperty("--surface", th.surface); r.setProperty("--fg", th.fg);
-  r.setProperty("--muted", th.muted); r.setProperty("--line", th.line);
+  r.setProperty("--muted", th.muted); r.setProperty("--line", th.line); r.setProperty("--wall", th.wall || th.bg);
   r.setProperty("--accent", th.dark ? "#ff6b4a" : "#ff5a36"); r.setProperty("--accent-fg", th.dark ? "#14161f" : "#ffffff");
   r.setProperty("--scrim", th.dark ? "rgba(0,0,0,.65)" : "rgba(20,22,31,.55)");
   document.documentElement.style.colorScheme = th.dark ? "dark" : "light";
-  if (NATIVE && NATIVE.setBars) try { NATIVE.setBars(th.bg, !th.dark); } catch (e) {}
+  if (NATIVE && NATIVE.setBars) try { NATIVE.setBars(th.bar || th.bg, !th.dark); } catch (e) {}
 }
 function themeFor(view) {
   if (view === "product") view = "food";
@@ -85,10 +120,53 @@ const ICONS = {
   food: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M12 8c-2.5 0-4 1.8-4 4.2C8 15 10 17 12 17s4-2 4-4.8C16 9.8 14.5 8 12 8zM12 8c0-1.2.6-2 1.6-2.4"/></svg>',
   docs: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><circle cx="8.5" cy="11" r="2.3"/><path d="M5 16.5c.6-1.6 2-2.5 3.5-2.5s2.9.9 3.5 2.5M15 9h4M15 13h4"/></svg>'
 };
+const LANGS = [["fr", "🇫🇷", "FR"], ["en", "🇬🇧", "EN"], ["es", "🇪🇸", "ES"]];
+let tipIdx = Math.floor(Date.now() / 86400000), petMood = "happy";
+function greeting() {
+  const hr = new Date().getHours(), name = (settings.name || "").trim();
+  const g = hr < 5 ? t("hiNight") : hr < 12 ? t("hiMorning") : hr < 18 ? t("hiAfternoon") : t("hiEvening");
+  return g.replace("{name}", name ? " " + name : "");
+}
+function todayInfo() {
+  const out = [];
+  const menu = lsGet("sc-menu", null), K = window.KitchenData;
+  if (menu && menu.days && K) {
+    const i = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(menu.created).setHours(0, 0, 0, 0)) / 86400000);
+    const d = menu.days[i], slot = new Date().getHours() < 15 ? "lunch" : "dinner";
+    const r = d && K.RECIPES.find(x => x.id === d[slot]);
+    if (r) out.push(["🍽️", t(slot === "lunch" ? "todayLunch" : "todayDinner"), r.n, "balance"]);
+  }
+  const shop = lsGet("sc-shop", []).filter(x => !x.done).length;
+  if (shop) out.push(["🛒", t("todayShop"), t("nItems", shop), "recipes"]);
+  if (K) { const pool = K.RECIPES.filter(r => r.c === "plat" && r.tg.includes("eq")); if (pool.length) out.push(["✨", t("k_ofDay"), pool[(Math.floor(Date.now() / 86400000) * 7) % pool.length].n, "recipes"]); }
+  return out;
+}
 VIEWS.home = root => {
-  const wrap = h("div", { className: "wrap" });
-  const hd = h("header", {}, header(t("appName"), { options: "home" }));
-  hd.append(h("p", { className: "hello", textContent: t("hello") }));
+  const wrap = h("div", { className: "wrap home" });
+  // Barre du haut : logo, langue, options
+  const bar = h("div", { className: "homebar" });
+  const logo = h("div", { className: "logo" }); logo.innerHTML = SoveeMascot.svg("happy", 30); logo.append(h("b", { textContent: t("appName") }));
+  const cur = LANGS.find(l => l[0] === settings.lang) || LANGS[0];
+  const lang = h("button", { type: "button", className: "langbtn", ariaLabel: t("language") }, h("span", { textContent: cur[1] }), h("b", { textContent: cur[2] }));
+  lang.onclick = () => { const i = LANGS.indexOf(cur); settings.lang = LANGS[(i + 1) % LANGS.length][0]; saveSettings(); render(); toast(t("langNow")); };
+  const opt = header("", { options: "home" }).lastChild;
+  bar.append(logo, h("div", { className: "sp" }), lang, opt);
+  // La mascotte et sa bulle
+  const tips = T().tips || I18N.fr.tips;
+  const hero = h("section", { className: "hero" });
+  const pet = h("button", { type: "button", className: "pet", ariaLabel: t("petLabel") }); pet.innerHTML = SoveeMascot.svg(petMood, 112);
+  const tipEl = h("span", { textContent: tips[tipIdx % tips.length] });
+  const bubble = h("div", { className: "bubble" }, h("b", { textContent: greeting() }), tipEl);
+  pet.onclick = () => {
+    tipIdx++; petMood = ["wink", "love", "wow", "happy"][tipIdx % 4];
+    pet.innerHTML = SoveeMascot.svg(petMood, 112); pet.classList.remove("hop"); void pet.offsetWidth; pet.classList.add("hop");
+    tipEl.textContent = tips[tipIdx % tips.length];
+  };
+  hero.append(pet, bubble);
+  // Aujourd'hui
+  const today = h("div", { className: "today" });
+  todayInfo().forEach(([ico, label, val, go_]) => { const b = h("button", { type: "button", className: "tchip" }, h("span", { className: "tico", textContent: ico }), h("div", {}, h("small", { textContent: label }), h("b", { textContent: val }))); b.onclick = () => go(go_); today.append(b); });
+  // Modules
   const filled = Object.values(cards).filter(c => c.number && !c.hidden).length;
   const mods = h("div", { className: "modules" });
   const mk = (key, color, title, sub, badge) => {
@@ -103,9 +181,8 @@ VIEWS.home = root => {
     mk("cards", "linear-gradient(135deg,#ff5a36,#e8336b)", t("modCards"), t("modCardsSub"), t("nCards", filled)),
     mk("food", "linear-gradient(135deg,#1f9d55,#0f766e)", t("modFood"), t("modFoodSub"), null)
   );
-  // Modules ajoutés par les autres fichiers (QR, promos, recettes, équilibre, calories)
   for (const m of ctx.modules) { ICONS[m.key] = m.icon; mods.append(mk(m.key, m.color, m.title(), m.sub(), m.badge ? m.badge() : null)); }
-  wrap.append(hd, mods, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
+  wrap.append(bar, hero, today, h("h2", { className: "homeh", textContent: t("hello") }), mods, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
   root.append(wrap);
 };
 
@@ -326,6 +403,7 @@ async function decodeImage(file) {
 }
 const loaded = {};
 function loadScript(src) { return loaded[src] ||= new Promise((ok, ko) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ko; document.head.append(s); }); }
+function pickGallery(cb) { const f = h("input", { type: "file", accept: "image/*" }); f.onchange = () => { if (f.files[0]) cb(f.files[0]); }; f.click(); }
 function pickPhoto(cb) { const f = $("#photo"); f.value = ""; f.onchange = () => { if (f.files[0]) cb(f.files[0]); }; f.click(); }
 
 /* ================= Papiers ================= */
@@ -463,6 +541,9 @@ VIEWS.options = root => {
       b.onclick = () => { settings.lang = k; saveSettings(); render(); }; langs.append(b);
     });
     opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("language") }), langs));
+    const nm = h("input", { id: "o-name", type: "text", value: settings.name || "", placeholder: t("namePh"), autocomplete: "given-name", maxLength: 30 });
+    nm.onchange = () => { settings.name = nm.value.trim(); saveSettings(); toast(t("saved")); };
+    opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("nameTitle") }), h("div", { className: "f", style: "margin:0" }, nm), h("p", { className: "sub", style: "margin:8px 0 0", textContent: t("nameHelp") })));
     opts.append(themePicker(t("background"), settings.theme, v => { settings.theme = v; saveSettings(); applyTheme(v); render(); }, false));
   } else {
     opts.append(themePicker(t("moduleBg"), settings.modTheme[optScope] || "home", v => { settings.modTheme[optScope] = v; saveSettings(); applyTheme(themeFor(optScope)); render(); }, true));
@@ -482,24 +563,52 @@ VIEWS.options = root => {
   wrap.append(opts, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
   root.append(wrap);
 };
+function themeName(n) { return n === "home" ? t("sameAsHome") : n === "photo" ? t("wp_photo") : (T().themes[n] || I18N.fr.themes[n] || ""); }
 function themePicker(title, current, onPick, withHome) {
-  const sw = h("div", { className: "colors" });
-  const names = withHome ? ["home", ...THEME_ORDER] : THEME_ORDER;
-  const label = h("p", { className: "sub", style: "margin:10px 0 0" });
-  names.forEach(n => {
+  const card = h("div", { className: "optcard" }, h("h3", { textContent: title }));
+  const label = h("p", { className: "sub", style: "margin:10px 0 0", textContent: themeName(current) });
+  const swatch = (n, bg) => {
     const b = h("button", { type: "button", className: "sw" });
-    const th = n === "home" ? resolveTheme(settings.theme) : n === "auto" ? null : THEMES[n];
-    b.style.setProperty("--c1", th ? th.bg : "linear-gradient(135deg,#f3f1ee 50%,#14161f 50%)");
-    if (n === "home") b.style.background = "repeating-linear-gradient(45deg," + resolveTheme(settings.theme).bg + " 0 6px,var(--surface) 6px 12px)";
-    if (n === "auto") b.style.background = "linear-gradient(135deg,#f3f1ee 50%,#14161f 50%)";
-    const name = n === "home" ? t("sameAsHome") : T().themes[n];
-    b.setAttribute("aria-label", name); b.title = name;
-    b.setAttribute("aria-pressed", String(current === n));
-    b.onclick = () => onPick(n);
-    sw.append(b);
+    b.style.background = bg; b.style.backgroundSize = n.startsWith("p_") ? "auto" : "cover";
+    b.setAttribute("aria-label", themeName(n)); b.title = themeName(n);
+    b.setAttribute("aria-pressed", String(current === n)); b.onclick = () => onPick(n);
+    return b;
+  };
+  const group = (name, list) => { const sw = h("div", { className: "colors" }); list.forEach(([n, bg]) => sw.append(swatch(n, bg))); card.append(h("p", { className: "wpgroup", textContent: name }), sw); };
+  const solids = THEME_ORDER.map(n => [n, n === "auto" ? "linear-gradient(135deg,#f3f1ee 50%,#14161f 50%)" : THEMES[n].bg]);
+  if (withHome) solids.unshift(["home", "repeating-linear-gradient(45deg," + resolveTheme(settings.theme).bg + " 0 6px,var(--surface) 6px 12px)"]);
+  group(t("wp_colors"), solids);
+  group(t("wp_gradients"), WALL_ORDER.filter(n => n.startsWith("g_")).map(n => [n, WALLS[n].wall]));
+  group(t("wp_patterns"), WALL_ORDER.filter(n => n.startsWith("p_")).map(n => [n, WALLS[n].wall]));
+  // Ma photo (galerie du téléphone)
+  const img = lsGet(PHOTO_KEY, null);
+  const row = h("div", { className: "colors", style: "align-items:center" });
+  if (img) row.append(swatch("photo", "url(" + img + ") center/cover"));
+  const pick = h("button", { type: "button", className: "btn", textContent: "🖼️ " + t(img ? "wp_change" : "wp_choose") });
+  pick.onclick = () => pickGallery(async file => {
+    try { const r = await shrinkWall(file); lsSet(PHOTO_KEY, r.data); if (lsGet(PHOTO_KEY, null) !== r.data) throw new Error("quota"); settings.photoDark = r.dark; saveSettings(); onPick("photo"); }
+    catch (e) { toast(t("wp_fail")); }
   });
-  label.textContent = current === "home" ? t("sameAsHome") : T().themes[current] || "";
-  return h("div", { className: "optcard" }, h("h3", { textContent: title }), sw, label);
+  row.append(pick);
+  card.append(h("p", { className: "wpgroup", textContent: t("wp_photoGroup") }), row, label);
+  return card;
+}
+// Réduit la photo (1080 px de large max) et mesure si elle est plutôt claire ou sombre
+function shrinkWall(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 1080 / im.width, 1920 / im.height), c = document.createElement("canvas");
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const g = c.getContext("2d"); g.drawImage(im, 0, 0, c.width, c.height);
+      const m = document.createElement("canvas"); m.width = m.height = 16; const mg = m.getContext("2d"); mg.drawImage(c, 0, 0, 16, 16);
+      const px = mg.getImageData(0, 0, 16, 16).data; let L = 0; for (let i = 0; i < px.length; i += 4) L += .2126 * px[i] + .7152 * px[i + 1] + .0722 * px[i + 2];
+      URL.revokeObjectURL(url);
+      res({ data: c.toDataURL("image/jpeg", 0.8), dark: L / 256 / 255 < 0.5 });
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error("image")); };
+    im.src = url;
+  });
 }
 
 /* ================= Feuilles, suppression, luminosité ================= */

@@ -341,3 +341,35 @@ textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);backgroun
 .risktile small{font-weight:600;font-size:12px;line-height:1.2}
 .why2{line-height:1.5;margin:6px 0 0}
 .reflist{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+
+/* ===== Sovée : fond d'écran, accueil et mascotte ===== */
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,var(--bg));pointer-events:none}
+.homebar{display:flex;align-items:center;gap:8px;padding:14px 0 6px}
+.homebar .sp{flex:1}
+.logo{display:flex;align-items:center;gap:8px}
+.logo b{font-family:var(--f-display);font-weight:800;font-size:28px;letter-spacing:-.02em;background:linear-gradient(120deg,#ff5a7a,#ff8a5b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo .mascot{filter:drop-shadow(0 2px 4px rgba(232,51,90,.3))}
+.langbtn{display:flex;align-items:center;gap:6px;height:44px;padding:0 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;cursor:pointer}
+.langbtn b{font-size:13px}
+.hero{position:relative;display:flex;align-items:center;gap:6px;margin:10px 0 14px;padding:16px 16px 16px 8px;border-radius:28px;
+  background:linear-gradient(135deg,rgba(255,122,147,.18),rgba(255,176,120,.18));border:1px solid rgba(255,122,147,.25);overflow:hidden}
+.hero::after{content:"";position:absolute;right:-30px;bottom:-50px;width:160px;height:160px;border-radius:50%;background:rgba(255,122,147,.12)}
+.pet{position:relative;z-index:1;flex:none;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pet .mascot{display:block;animation:breathe 3.2s ease-in-out infinite;transform-origin:50% 90%;filter:drop-shadow(0 8px 12px rgba(232,51,90,.28))}
+.pet.hop .mascot{animation:hop .6s cubic-bezier(.3,1.6,.5,1)}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.045,1.03)}}
+@keyframes hop{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-14px) scale(1.06,.96)}70%{transform:translateY(0) scale(.97,1.03)}100%{transform:none}}
+.bubble{position:relative;z-index:1;flex:1;min-width:0;background:var(--surface);color:var(--fg);border-radius:20px;padding:12px 14px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.bubble::before{content:"";position:absolute;left:-8px;top:50%;margin-top:-8px;border:8px solid transparent;border-left:0;border-right-color:var(--surface)}
+.bubble b{display:block;font-family:var(--f-display);font-size:18px;line-height:1.2}
+.bubble span{display:block;font-size:13px;color:var(--muted);margin-top:4px}
+.today{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px;scrollbar-width:none}
+.today::-webkit-scrollbar{display:none}
+.tchip{flex:none;display:flex;align-items:center;gap:10px;max-width:260px;padding:10px 14px 10px 10px;border-radius:18px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.tchip .tico{width:36px;height:36px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+.tchip small{display:block;color:var(--muted);font-size:11px}
+.tchip b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.homeh{font-family:var(--f-display);font-size:18px;margin:14px 2px 10px}
+.home .modules .module{box-shadow:0 8px 20px rgba(0,0,0,.10)}
+.wpgroup{margin:12px 0 8px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.wpgroup:first-of-type{margin-top:4px}
