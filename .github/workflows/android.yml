@@ -28,12 +28,11 @@ jobs:
         id: offcache
         with:
           path: offdata
-          key: offdata-v1-${{ steps.week.outputs.w }}
-          restore-keys: offdata-v1-
+          key: offdata-v2-${{ steps.week.outputs.w }}
 
       - name: Télécharger la base Open Food Facts / Open Beauty Facts
         if: steps.offcache.outputs.cache-hit != 'true'
-        run: node tools/fetch-off.mjs offdata 50000 8000
+        run: python3 tools/fetch-off-csv.py offdata 50000 8000
 
       - name: Construire la base hors ligne de l'appli
         run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl
