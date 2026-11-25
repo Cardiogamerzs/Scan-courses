@@ -11,8 +11,32 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # La base produits est téléchargée une fois par semaine puis gardée en cache
+      - name: Semaine en cours
+        id: week
+        run: echo "w=$(date +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: offcache
+        with:
+          path: offdata
+          key: offdata-v1-${{ steps.week.outputs.w }}
+          restore-keys: offdata-v1-
+
+      - name: Télécharger la base Open Food Facts / Open Beauty Facts
+        if: steps.offcache.outputs.cache-hit != 'true'
+        run: node tools/fetch-off.mjs offdata 50000 8000
+
+      - name: Construire la base hors ligne de l'appli
+        run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl
 
       - uses: actions/setup-java@v4
         with:
@@ -35,8 +59,8 @@ jobs:
       - name: Publier dans les Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Scan Courses 1.0.${{ github.run_number }}
+          tag_name: v2.0.${{ github.run_number }}
+          name: Scan Courses 2.0.${{ github.run_number }}
           body: |
             Télécharge **ScanCourses.apk** sur ton téléphone Android et ouvre-le pour l'installer.
             Lien direct, toujours vers la dernière version :
