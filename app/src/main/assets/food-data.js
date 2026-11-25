@@ -70,7 +70,7 @@ function normFood(r) {
     n: { kcal: num(nu["energy-kcal_100g"]), fat: num(nu.fat_100g), sat: num(nu["saturated-fat_100g"]), sug: num(nu.sugars_100g), salt: num(nu.salt_100g), fib: num(nu.fiber_100g), prot: num(nu.proteins_100g) },
     add: r.additives_tags || [], all: r.allergens_tags || [], tr: r.traces_tags || [], ana: r.ingredients_analysis_tags || [],
     lab: r.labels_tags || [], ori: r.origins_tags || [], pack: r.packaging_tags || [],
-    ing: (r.ingredients_text_fr || "").slice(0, 1500), img: r.image_front_small_url || ""
+    ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || "").slice(0, 1500), img: r.image_front_small_url || ""
   };
   p.drink = R.isDrink(p) ? 1 : 0;
   p.rg = rankGroup(p.cats, RANK_FOOD);
@@ -80,7 +80,7 @@ function normBeauty(r) {
   const p = {
     type: "beauty", code: String(r.code), name: (r.product_name_fr || r.product_name || "").trim(), brand: (r.brands || "").split(",")[0].trim(),
     qty: r.quantity || "", cats: r.categories_tags || [], lab: r.labels_tags || [],
-    inci: (r.ingredients_text || (r.ingredients_tags || []).map(t => t.replace(/^[a-z]{2}:/, "").replace(/-/g, " ")).join(", ")).slice(0, 3000),
+    inci: (r.ingredients_text || r.ingredients_text_fr || r.ingredients_text_en || (r.ingredients_tags || []).map(t => t.replace(/^[a-z]{2}:/, "").replace(/-/g, " ")).join(", ")).slice(0, 3000),
     img: r.image_front_small_url || ""
   };
   p.rg = rankGroup(p.cats, RANK_BEAUTY);
@@ -116,8 +116,8 @@ async function loadIndex(type) {
 }
 
 /* ---------- En ligne (si réseau) ---------- */
-const FOOD_FIELDS = "code,product_name_fr,product_name,generic_name_fr,brands,quantity,categories_tags,pnns_groups_1,pnns_groups_2,nutriscore_grade,nutriscore_score,nova_group,ecoscore_grade,ecoscore_score,environmental_score_grade,environmental_score_score,nutriments,additives_tags,allergens_tags,traces_tags,ingredients_analysis_tags,labels_tags,origins_tags,packaging_tags,ingredients_text_fr,image_front_small_url";
-const BEAUTY_FIELDS = "code,product_name,product_name_fr,brands,quantity,categories_tags,ingredients_tags,ingredients_text,labels_tags,image_front_small_url";
+const FOOD_FIELDS = "code,product_name_fr,product_name,generic_name_fr,brands,quantity,categories_tags,pnns_groups_1,pnns_groups_2,nutriscore_grade,nutriscore_score,nova_group,ecoscore_grade,ecoscore_score,environmental_score_grade,environmental_score_score,nutriments,additives_tags,allergens_tags,traces_tags,ingredients_analysis_tags,labels_tags,origins_tags,packaging_tags,ingredients_text_fr,ingredients_text,ingredients_text_en,image_front_small_url";
+const BEAUTY_FIELDS = "code,product_name,product_name_fr,brands,quantity,categories_tags,ingredients_tags,ingredients_text,ingredients_text_fr,ingredients_text_en,labels_tags,image_front_small_url";
 async function withTimeout(url, ms) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
   try { const r = await fetch(url, { signal: ctl.signal }); if (!r.ok) throw new Error(r.status); return await r.json(); } finally { clearTimeout(t); }
@@ -144,15 +144,65 @@ async function onlineSearch(q) {
 const SEEN_KEY = "sc-food-seen";
 function seenGet() { try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || {}; } catch (e) { return {}; } }
 function seenPut(p) { try { const s = seenGet(); s[p.code] = p; const keys = Object.keys(s); if (keys.length > 400) delete s[keys[0]]; localStorage.setItem(SEEN_KEY, JSON.stringify(s)); } catch (e) {} }
+/* Cosmétiques rangés par erreur dans la base alimentaire : on les reconnaît et on les traite comme des cosmétiques */
+const NONFOOD_CATS = /^en:(non-food-products|cosmetics|body-milks?|hygiene|beauty|shower-gels?|shampoos?|soaps?|deodorants?|toothpastes?|body-care|skin-care|hair-care|make-up|perfumes?)/;
+const NONFOOD_NAME = /\b(lait (corporel|pour le corps|hydratant|demaquillant|solaire|apres[- ]soleil)|creme (hydratante|de jour|de nuit|mains|pour les mains|visage|corps|solaire|anti)|gel douche|douche|shampo|apres[- ]shampo|savon|deodorant|anti[- ]transpirant|dentifrice|bain de bouche|lotion|baume (a levres|corps|levres)|serum|demaquillant|eau micellaire|eau de (toilette|parfum)|maquillage|mascara|rouge a levres|vernis|after[- ]?shave|mousse a raser|huile (seche|de massage|corps|cheveux|demaquillante)|masque (visage|cheveux)|gommage|exfoliant|creme de douche|body (lotion|milk|wash)|shower gel|shampoo|conditioner|toothpaste|deodorant)\b/;
+function looksNonFood(p) {
+  if (p.type !== "food") return false;
+  const n = p.n || {}, noNutri = [n.kcal, n.fat, n.sug, n.salt, n.prot].every(v => v == null) && !p.ns;
+  if ((p.cats || []).some(c => NONFOOD_CATS.test(c))) return true;
+  if (!noNutri) return false;
+  if (NONFOOD_NAME.test(norm(p.name + " " + (p.cats || []).join(" ")))) return true;
+  // Liste d'ingrédients au format INCI (Aqua, Parfum, CI 14700…) : c'est un cosmétique
+  const inci = new Set((norm(p.ing).match(INCI_MARK) || []).map(x => x.replace(/\s+\d+$/, "")));
+  return inci.size >= 2;
+}
+const INCI_MARK = /\b(aqua|parfum|fragrance|dimethicone|cetearyl alcohol|cetyl alcohol|stearyl alcohol|ci \d{5}|sodium laureth|sodium lauryl|glyceryl stearate|phenoxyethanol|tocopheryl acetate|linalool|limonene|hexyl cinnamal|carbomer|cocamidopropyl|butyrospermum|ethylhexylglycerin|disodium edta|tetrasodium edta|polysorbate|peg-\d+)\b/g;
+// L'inverse : un « cosmétique » qui est en fait un aliment (catégories alimentaires)
+const FOOD_CATS = /^en:(plant-based-foods|beverages|dairies|snacks|meats|breakfasts|sweet-snacks|biscuits|cereals|groceries|condiments|sauces|spreads|desserts|fruits|vegetables|frozen-foods|meals|fishes|seafood|cheeses|chocolates|confectioneries|waters|juices|baby-foods)/;
+function looksFood(p) { return p.type === "beauty" && (p.cats || []).some(c => FOOD_CATS.test(c)) && !(p.cats || []).some(c => NONFOOD_CATS.test(c)); }
+function asBeauty(p) {
+  return { type: "beauty", code: p.code, name: p.name, brand: p.brand, qty: p.qty || "", cats: p.cats || [], lab: p.lab || [], inci: p.ing || "", img: p.img || "", fromFood: true, rg: rankGroup(p.cats || [], RANK_BEAUTY) };
+}
+/* Composition saisie ou photographiée par l'utilisateur (gardée sur le téléphone) */
+const INCI_KEY = "sc-inci";
+function userInci() { try { return JSON.parse(localStorage.getItem(INCI_KEY)) || {}; } catch (e) { return {}; } }
+function setUserInci(code, text, name) { const m = userInci(); if (text) m[code] = { t: text, n: name || "" }; else delete m[code]; try { localStorage.setItem(INCI_KEY, JSON.stringify(m)); } catch (e) {} }
+function finish(p, code) {
+  if (!p) {
+    const u = userInci()[code];
+    return u ? { type: "beauty", code, name: u.n || "", brand: "", qty: "", cats: [], lab: [], inci: u.t, img: "", userInci: true } : null;
+  }
+  if (looksNonFood(p)) p = asBeauty(p);
+  if (p.type === "beauty") { const u = userInci()[p.code] || userInci()[code]; if (u) p = { ...p, inci: u.t, userInci: true }; }
+  return p;
+}
+async function foodOnline(code) {
+  try {
+    const j = await withTimeout("https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) + ".json?fields=" + FOOD_FIELDS, 8000);
+    if (j && j.status === 1 && j.product) return normFood({ ...j.product, code });
+  } catch (e) {}
+  return null;
+}
+async function beautyOnline(code) {
+  try {
+    const j = await withTimeout("https://world.openbeautyfacts.org/api/v2/product/" + encodeURIComponent(code) + ".json?fields=" + BEAUTY_FIELDS, 8000);
+    if (j && j.status === 1 && j.product) return normBeauty({ ...j.product, code });
+  } catch (e) {}
+  return null;
+}
 async function findProduct(code) {
   code = String(code).trim();
   const variants = [code, code.padStart(13, "0"), code.replace(/^0+/, "")];
-  for (const c of variants) { const p = await localProduct(c, "food"); if (p) return p; }
-  for (const c of variants) { const p = await localProduct(c, "beauty"); if (p) return p; }
-  const s = seenGet(); for (const c of variants) if (s[c]) return s[c];
-  const p = await onlineProduct(code);
-  if (p) seenPut(p);
-  return p;
+  let p = null;
+  for (const c of variants) { p = await localProduct(c, "food"); if (p) break; }
+  if (!p) for (const c of variants) { p = await localProduct(c, "beauty"); if (p) break; }
+  if (!p) { const s = seenGet(); for (const c of variants) if (s[c]) { p = s[c]; break; } }
+  if (!p) { p = await onlineProduct(code); if (p) seenPut(p); }
+  // Un « aliment » qui est en fait un cosmétique : on cherche d'abord sa vraie fiche dans Open Beauty Facts
+  if (p && looksNonFood(p)) { const b = await beautyOnline(code); if (b && b.inci) { seenPut(b); p = b; } }
+  if (p && looksFood(p)) { const f = await foodOnline(code); if (f && !looksNonFood(f)) { seenPut(f); p = f; } }
+  return finish(p, code);
 }
 function norm(s) { return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
 async function searchLocal(q, limit = 60) {
@@ -168,5 +218,5 @@ async function searchLocal(q, limit = 60) {
   return out;
 }
 
-root.FoodData = { RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
+root.FoodData = { setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
 })(typeof window !== "undefined" ? window : globalThis);

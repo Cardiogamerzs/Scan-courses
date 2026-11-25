@@ -194,6 +194,9 @@ VIEWS.product = rootEl => {
   if (p.missing) {
     wrap.append(h("header", {}, header(t("f_unknown"), { back: true })),
       h("div", { className: "soon" }, h("p", { textContent: t("f_unknownTxt", p.code), style: "margin:0" })));
+    const add = h("button", { type: "button", className: "btn primary full", style: "margin-top:12px", textContent: "🧴 " + t("u_isCosmetic") });
+    add.onclick = () => inciEditor(p.code, "", "", true);
+    wrap.append(add);
     return;
   }
   const sc = p.type === "beauty" ? R.scoreCosmetic(p) : R.scoreFood(p, F.weights);
@@ -206,7 +209,7 @@ VIEWS.product = rootEl => {
     hero.classList.add("bhero");
     info.textContent = "";
     info.append(h("b", { className: "bname", textContent: p.name || p.code }), h("span", { className: "bbrand", textContent: [p.brand, p.qty].filter(Boolean).join(" · ") }),
-      h("div", { className: "bscore" }, dot(COLORS[R.scoreClass(sc.score)]), h("div", {}, h("b", { textContent: (sc.score == null ? "?" : sc.score) + "/100" }), h("span", { textContent: scoreLabel(sc.score) }))));
+      h("div", { className: "bscore" }, dot(COLORS[R.scoreClass(sc.score)]), h("div", {}, h("b", { textContent: (sc.score == null ? "?" : sc.score) + "/100" }), h("span", { textContent: p.inci ? scoreLabel(sc.score) : t("u_compUnknown") }))));
   }
   const verdict = p.type === "beauty" ? null : h("div", { className: "verdict" }, ring(sc.score), h("div", {}, h("b", { textContent: scoreLabel(sc.score), style: "color:" + COLORS[R.scoreClass(sc.score)] }), h("small", { textContent: sc.score == null ? t("f_noScore") : (Math.round(sc.score / 5 * 10) / 10).toString().replace(".", ",") + "/20" })));
   if (verdict) info.append(verdict);
@@ -243,7 +246,21 @@ function item(icon, title, sub, value, color, open) {
   return row;
 }
 function fmt(v, unit) { return v == null ? "—" : (Math.round(v * 100) / 100).toString().replace(".", ",") + unit; }
+function noInfo(p) {
+  const n = p.n || {};
+  return sc0(p) == null && [n.kcal, n.fat, n.sat, n.sug, n.salt, n.prot, n.fib].every(v => v == null) && !p.ing && !(p.add || []).length && !p.ns && !p.nova;
+}
+function sc0(p) { return R.scoreFood(p, F.weights).score; }
 function healthTab(body, p, sc) {
+  if (noInfo(p)) {
+    body.append(h("div", { className: "unknownbox" }, h("b", { textContent: "❔ " + t("u_noInfoTitle") }), h("p", { textContent: t("u_noInfoTxt") })));
+    const off = h("button", { type: "button", className: "btn full", textContent: "🌍 " + t("u_completeOff") });
+    off.onclick = () => ctx.openUrl("https://world.openfoodfacts.org/product/" + encodeURIComponent(p.code));
+    const cos = h("button", { type: "button", className: "btn full", textContent: "🧴 " + t("u_isCosmetic") });
+    cos.onclick = () => inciEditor(p.code, p.name, "", true);
+    body.append(h("div", { className: "row col" }, cos, off));
+    return;
+  }
   const bad = [], good = [];
   const adds = R.additivesOf(p);
   const hi = adds.filter(a => a.risk === "high"), mo = adds.filter(a => a.risk === "mod");
@@ -276,6 +293,7 @@ function healthTab(body, p, sc) {
 
   // Grossesse / bébés
   const verdictRow = (title, r) => {
+    if (!p.ing) return item(title === "preg" ? "🤰" : "👶", title === "preg" ? t("f_preg") : t("f_baby"), t("u_unkVerdict"), null, LV.none);
     const c = r.v === "ok" ? LV.low : r.v === "mod" ? LV.mid : LV.high;
     return item(title === "preg" ? "🤰" : "👶", title === "preg" ? t("f_preg") : t("f_baby"), t("vd_" + r.v), null, c, r.why.map(w => h("small", { textContent: "• " + w })));
   };
@@ -352,8 +370,15 @@ function ingRow(x) {
 function beautyHealth(body, p, sc) {
   const C = root.CosmeticDB;
   if (!p.inci || !C) {
-    body.append(h("p", { className: "sub", textContent: t("b_noInci") }), h("p", { className: "notice", textContent: t("b_source2") }));
+    body.append(h("div", { className: "unknownbox" }, h("b", { textContent: "❔ " + t("u_compUnknown") }), h("p", { textContent: t("u_compUnknownTxt") })));
+    const b = h("button", { type: "button", className: "btn primary full", textContent: "📷 " + t("u_photoInci") });
+    b.onclick = () => inciEditor(p.code, p.name, "", false);
+    body.append(h("div", { className: "row col" }, b), h("p", { className: "notice", textContent: t("b_source2") }));
     return;
+  }
+  if (p.userInci) {
+    const ed = h("button", { type: "button", className: "linkbtn", textContent: t("u_edit") }); ed.onclick = () => inciEditor(p.code, p.name, p.inci, false);
+    body.append(h("div", { className: "userinci" }, h("span", { textContent: "✍️ " + t("u_yourInci") }), ed));
   }
   const comp = C.composition(p.inci);
   // Qualités
@@ -383,6 +408,44 @@ function beautyHealth(body, p, sc) {
   if (!risky.length) body.append(h("p", { className: "sub", textContent: t("b_clean") }));
   body.append(h("details", { className: "ing" }, h("summary", { textContent: t("f_ingredients") }), h("p", { textContent: p.inci })));
   body.append(h("p", { className: "notice", textContent: t("b_source2") }));
+}
+/* Composition d'un cosmétique : photo (lecture du texte sur le téléphone) ou saisie, puis analyse */
+function cleanInci(raw) {
+  let x = (raw || "").replace(/-\n/g, "").replace(/\s*\n\s*/g, " ").replace(/\s+/g, " ").trim();
+  const m = x.match(/ingr[eé]dients?\s*[:：]?\s*/i); if (m) x = x.slice(m.index + m[0].length);
+  // garde le morceau qui ressemble le plus à une liste (le plus de virgules)
+  const parts = x.split(/\.\s+(?=[A-ZÀ-Ü])/); x = parts.sort((a, b) => (b.match(/,/g) || []).length - (a.match(/,/g) || []).length)[0] || x;
+  return x.replace(/\s*,\s*/g, ", ").replace(/[.;]\s*$/, "").trim();
+}
+function inciEditor(code, name, initial, askName) {
+  openSheet(sh => {
+    sh.append(h("h2", { textContent: t("u_inciTitle") }), h("p", { className: "sub", textContent: t("u_inciHelp") }));
+    let nameIn = null;
+    if (askName) { nameIn = h("input", { type: "text", value: name || "", placeholder: t("u_namePh") }); sh.append(h("div", { className: "f" }, nameIn)); }
+    const ta = h("textarea", { rows: 7, value: initial || "", placeholder: "Aqua, Glycerin, Cetearyl Alcohol, Parfum…" });
+    const status = h("p", { className: "sub" });
+    if (NATIVE && NATIVE.ocrPhoto) {
+      const cam = h("button", { type: "button", className: "btn primary", textContent: "📷 " + t("u_takePhoto") });
+      const gal = h("button", { type: "button", className: "btn", textContent: "🖼️ " + t("u_fromGallery") });
+      window.onOcr = (text, err) => {
+        if (text && text.trim()) { ta.value = cleanInci(text); status.textContent = "✓ " + t("u_ocrOk"); }
+        else status.textContent = err === "cancel" ? "" : t("u_ocrFail");
+      };
+      cam.onclick = () => { status.textContent = t("u_reading"); NATIVE.ocrPhoto(false); };
+      gal.onclick = () => { status.textContent = t("u_reading"); NATIVE.ocrPhoto(true); };
+      sh.append(h("div", { className: "row" }, cam, gal));
+    }
+    sh.append(status, h("div", { className: "f" }, ta), h("p", { className: "notice", textContent: t("u_checkText") }));
+    const ok = h("button", { type: "button", className: "btn primary full", textContent: "✨ " + t("u_analyse") });
+    ok.onclick = () => {
+      const txt = cleanInci(ta.value);
+      if ((txt.match(/,/g) || []).length < 2) { status.textContent = t("u_tooShort"); return; }
+      D.setUserInci(code, txt, nameIn ? nameIn.value.trim() : name);
+      closeSheet(); openProduct(code);
+    };
+    sh.append(ok);
+    if (initial) { const del = h("button", { type: "button", className: "btn full", style: "margin-top:8px", textContent: t("u_removeInci") }); del.onclick = () => { D.setUserInci(code, ""); closeSheet(); openProduct(code); }; sh.append(del); }
+  });
 }
 function altTab(body, p) {
   body.append(h("p", { className: "sub", textContent: t("a_help") }));

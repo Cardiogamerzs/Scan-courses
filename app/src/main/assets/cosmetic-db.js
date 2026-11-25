@@ -134,7 +134,7 @@ const RAW = [
 
   // ---------- Sans risque connu ----------
   [/^aqua\b|^water\b|^eau\b|aqua \(water\)|eau \(aqua\)/, "Eau (aqua)", "none", "Solvant", "Base de la plupart des cosmétiques.", [], []],
-  [/glycerin|glycérine|glycerol/, "Glycérine", "none", "Hydratant", "Hydratant de référence, très bien toléré.", [], []],
+  [/\bglycerin\b|glycérine|glycerol/, "Glycérine", "none", "Hydratant", "Hydratant de référence, très bien toléré.", [], []],
   [/cetearyl alcohol|cetyl alcohol|stearyl alcohol|behenyl alcohol|myristyl alcohol/, "Alcool gras", "none", "Émollient, épaississant", "Malgré son nom, ce n'est pas un alcool desséchant : c'est une cire douce issue des huiles végétales.", [], []],
   [/glyceryl stearate|glyceryl oleate|glyceryl caprylate|sorbitan|cetearyl glucoside|coco-glucoside|decyl glucoside|lauryl glucoside|caprylyl\/capryl glucoside|sucrose|polyglyceryl/, "Émulsifiant doux", "none", "Émulsifiant", "Émulsifiant ou tensioactif doux, généralement d'origine végétale.", [], []],
   [/\boil\b|butter|huile|beurre/, "Huile ou beurre végétal", "none", "Émollient", "Huile ou beurre végétal nourrissant. Allergie possible seulement en cas d'allergie connue à la plante (ex. fruits à coque).", [], []],
@@ -144,6 +144,8 @@ const RAW = [
   [/tocopherol|tocopheryl|vitamin e/, "Vitamine E", "none", "Antioxydant", "Antioxydant protecteur, très bien toléré.", [], []],
   [/panthenol|allantoin|bisabolol|niacinamide|hyaluron|sodium pca|betaine|urea|ceramide|cholesterol|madecassoside|centella|aloe barbadensis|aloe vera|chamomilla|calendula|avena sativa|\boat\b|glycyrrhiza|ascorbyl|ascorbic acid|ferulic|caffeine|zinc gluconate|lactobacillus|inulin|trehalose|beta-glucan/, "Actif apaisant ou hydratant", "none", "Soin", "Ingrédient de soin reconnu comme bien toléré.", [], []],
   [/xanthan|carbomer|cellulose|guar|carrageenan|sclerotium|acacia|gellan|agar|alginate|pullulan|hydroxyethylcellulose|starch|amidon|maltodextrin/, "Épaississant", "none", "Texturant", "Gélifiant ou épaississant sans risque connu.", [], []],
+  [/\b(di|tri|tetra)sodium edta\b|\bedta\b/, "EDTA", "low", "Chélatant", "Fixe le calcaire et stabilise la formule. Peu irritant aux doses utilisées, mais très peu biodégradable : il persiste dans les eaux et peut faciliter la pénétration d'autres substances dans la peau.", ["ECHA", "SCCS"], ["env"]],
+  [/methylpropanediol|\bpropanediol\b|pentylene glycol|butylene glycol/, "Solvant hydratant", "none", "Solvant", "Solvant et hydratant léger, bien toléré.", [], []],
   [/citric acid|lactic acid|sodium citrate|sodium hydroxide|potassium hydroxide|sodium chloride|magnesium|calcium carbonate|sodium bicarbonate|disodium edta|tetrasodium edta|sodium phytate|tetrasodium glutamate diacetate|gluconolactone|sodium gluconate/, "Régulateur ou stabilisant", "none", "pH, stabilité", "Ajuste le pH ou stabilise la formule ; sans effet sur la peau dans le produit fini.", [], []],
   [/sodium cocoyl isethionate|sodium lauroyl sarcosinate|sodium cocoyl glutamate|disodium cocoyl glutamate|sodium lauroyl glutamate|sodium coco-sulfate|sodium cocoamphoacetate|lauryl betaine/, "Tensioactif doux", "none", "Nettoyant", "Tensioactif doux, bien toléré.", [], []],
   [/zinc oxide|kaolin|mica|iron oxides|\bci ?77\d{3}\b|titanium dioxide|bentonite|montmorillonite|illite|charcoal/, "Minéral", "none", "Pigment, absorbant", "Minéral sans risque connu sur la peau (hors forme nano en spray).", [], []],
@@ -186,7 +188,7 @@ const FR = { "aqua": "Eau", "water": "Eau", "aqua (water)": "Eau", "water (aqua)
   "cocamidopropyl betaine": "Cocamidopropyl bétaïne", "coco-glucoside": "Coco-glucoside", "decyl glucoside": "Décyl glucoside", "glyceryl stearate": "Stéarate de glycéryle", "paraffinum liquidum": "Huile minérale (paraffine liquide)",
   "petrolatum": "Vaseline", "aluminum chlorohydrate": "Chlorhydrate d'aluminium", "methylisothiazolinone": "Méthylisothiazolinone", "benzophenone-3": "Benzophénone-3", "octocrylene": "Octocrylène", "homosalate": "Homosalate" };
 // Familles (le nom de la famille ne remplace pas le nom de l'ingrédient)
-const GENERIC = new Set(["Huile ou beurre végétal", "Émulsifiant doux", "Émollient", "Silicone ou silice", "Actif apaisant ou hydratant", "Épaississant", "Régulateur ou stabilisant", "Tensioactif doux",
+const GENERIC = new Set(["Solvant hydratant", "EDTA", "Huile ou beurre végétal", "Émulsifiant doux", "Émollient", "Silicone ou silice", "Actif apaisant ou hydratant", "Épaississant", "Régulateur ou stabilisant", "Tensioactif doux",
   "Minéral", "Cire", "Extrait végétal", "Conservateur doux", "Alcool gras", "Glycol", "Allergène de parfum", "Colorant (CI)", "Dérivé éthoxylé (PEG, polysorbate…)", "Dérivé pétrolier (huile minérale, vaseline)",
   "Filtre UV chimique", "Ammonium quaternaire", "Polymère plastique (microplastique)", "Parabène interdit", "Libérateur de formaldéhyde", "Sel d'aluminium", "Musc synthétique", "Nanoparticules", "Alcool"]);
 function cap(s) { return s.replace(/\s+/g, " ").replace(/(^|[\s(\-\/])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()); }
@@ -200,8 +202,17 @@ const DB = RAW.map(([re, name, lv, fn, why, src, tags]) => ({ re, name, lv, fn, 
 
 // Découpe la liste INCI en ingrédients (en ignorant les virgules entre parenthèses)
 function splitInci(text) {
+  const raw = String(text || "").replace(/^\s*(ingr[ée]dients?|ingredients|composition|inci)\s*:?/i, "");
+  const seps = (raw.match(/[,;•·]/g) || []).length;
+  // Liste sans virgules (fréquent dans les exports) : une ligne par ingrédient, sinon découpage intelligent
+  if (seps < 2) {
+    const lines = raw.split(/\s*[\r\n]+\s*/).filter(Boolean);
+    if (lines.length >= 3) return clean(lines);
+    const words = raw.replace(/\s+/g, " ").trim().split(" ");
+    if (words.length >= 4) return clean(segmentInci(words));
+  }
   const out = []; let cur = "", depth = 0;
-  const s = String(text || "").replace(/^\s*(ingr[ée]dients?|ingredients|composition|inci)\s*:?/i, "").replace(/\s+/g, " ");
+  const s = raw.replace(/\s+/g, " ");
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
     if (ch === "(" || ch === "[") depth++;
@@ -210,7 +221,34 @@ function splitInci(text) {
     if ((ch === "," || ch === ";" || ch === "•" || ch === "·") && depth === 0 && !numComma) { out.push(cur); cur = ""; } else cur += ch;
   }
   out.push(cur);
-  return out.map(x => x.replace(/[*°.]+$/g, "").replace(/^[\s\-–*]+|[\s*]+$/g, "").trim()).filter(x => x && x.length < 120);
+  return clean(out);
+}
+function clean(list) { return list.map(x => x.replace(/[*°.]+$/g, "").replace(/^[\s\-–*]+|[\s*]+$/g, "").trim()).filter(x => x && x.length < 120); }
+// Découpe « Aqua (Water) Glycerin Stearyl Alcohol Citric Acid CI 14700 … » en ingrédients
+const CONT = /^(alcohol|acid|oil|butter|extract|juice|powder|gum|water|wax|seed|leaf|fruit|root|flower|kernel|peel|bark|stem|benzoate|sorbate|hydroxide|chloride|stearate|citrate|sulfate|sulphate|lactate|palmitate|oleate|myristate|caprate|caprylate|glucoside|betaine|glutamate|glycinate|copolymer|crosspolymer|polymer|edta|cinnamal|salicylate|salicylic|silicate|phosphate|carbonate|oxide|dioxide|hyaluronate|isethionate|sarcosinate|taurate|ester|esters|isostearate|laurate|cocoate|cocoyl|amphoacetate|propionate|gluconate|pca|hydrolyzed|protein|proteins|filtrate|ferment|distillate|hydrate|crosspolymer-?\d*|blend)$/i;
+const PREFIX = /^(sodium|potassium|tetrasodium|disodium|trisodium|magnesium|calcium|zinc|ammonium|aluminum|aluminium|stearyl|cetyl|cetearyl|behenyl|myristyl|lauryl|amyl|hexyl|benzyl|butyl|ethyl|isopropyl|citric|lactic|glycolic|xanthan|ci|peg-\d+|ppg-\d+|polyglyceryl-\d+|polysorbate|caprylic\/capric|glyceryl|sorbitan|cocamidopropyl|acrylates\/c10-30|hydrogenated|hydroxyethyl|titanium|iron|vitamin|vitamine)$/i;
+const TERM = /^(extract|oil|butter|juice|wax|water|powder)$/i;
+function segmentInci(words) {
+  const out = []; let i = 0;
+  const isKnown = w => { const e = lookup(w); return !!e && !/extract\|extrait/.test(e.re.source); };
+  while (i < words.length) {
+    let seg = [words[i]], depth = (words[i].match(/\(/g) || []).length - (words[i].match(/\)/g) || []).length; i++;
+    // Nom botanique : « Genre espèce (…) partie Extract/Oil… »
+    if (!isKnown(seg[0]) && !PREFIX.test(seg[0])) {
+      for (let k = i; k < Math.min(words.length, i + 7); k++) {
+        if (TERM.test(words[k].replace(/[()]/g, ""))) { while (i <= k) { seg.push(words[i]); depth += (words[i].match(/\(/g) || []).length - (words[i].match(/\)/g) || []).length; i++; } break; }
+        if (isKnown(words[k]) && !/[()]/.test(words[k])) break;
+      }
+    }
+    while (i < words.length) {
+      const w = words[i], bare = w.replace(/[()]/g, "");
+      const glue = depth > 0 || /^[(\/\-]/.test(w) || /^\d/.test(bare) || /^[a-z]/.test(bare) || CONT.test(bare) || (seg.length === 1 && PREFIX.test(seg[0]));
+      if (!glue) break;
+      seg.push(w); depth += (w.match(/\(/g) || []).length - (w.match(/\)/g) || []).length; i++;
+    }
+    out.push(seg.join(" "));
+  }
+  return out;
 }
 function lookup(ing) {
   const s = ing.toLowerCase();

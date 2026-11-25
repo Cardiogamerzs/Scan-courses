@@ -34,6 +34,9 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -68,6 +71,29 @@ class MainActivity : AppCompatActivity() {
         val uri = shotUri
         val name = if (ok && uri != null) saveImage(uri) else null
         js("window.onPhoto && window.onPhoto(" + (if (name == null) "null" else JSONObject.quote(name)) + ")")
+    }
+
+    // Lecture du texte d'une photo (liste d'ingrédients d'un cosmétique), sur le téléphone
+    private var ocrUri: Uri? = null
+    private val ocrCamera = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val uri = ocrUri
+        if (ok && uri != null) runOcr(uri) else sendOcr(null, "cancel")
+    }
+    private val ocrGallery = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) runOcr(uri) else sendOcr(null, "cancel")
+    }
+    private fun sendOcr(text: String?, err: String?) {
+        js("window.onOcr && window.onOcr(" + (if (text == null) "null" else JSONObject.quote(text)) + "," + (if (err == null) "null" else JSONObject.quote(err)) + ")")
+    }
+    private fun runOcr(uri: Uri) {
+        try {
+            val image = InputImage.fromFilePath(this, uri)
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(image)
+                .addOnSuccessListener { res -> sendOcr(res.text, if (res.text.isBlank()) "empty" else null) }
+                .addOnFailureListener { e -> sendOcr(null, e.message ?: "error") }
+        } catch (e: Exception) {
+            sendOcr(null, e.message ?: "error")
+        }
     }
 
     // Sélecteur d'image pour les <input type=file> (QR code depuis une photo, etc.)
@@ -322,6 +348,24 @@ class MainActivity : AppCompatActivity() {
                     takePicture.launch(uri)
                 } catch (e: Exception) {
                     js("window.onPhoto && window.onPhoto(null)")
+                }
+            }
+        }
+
+        /** Photographie (ou choisit dans la galerie) un texte et le lit ; résultat par window.onOcr(texte, erreur). */
+        @JavascriptInterface
+        fun ocrPhoto(fromGallery: Boolean) {
+            runOnUiThread {
+                try {
+                    if (fromGallery) ocrGallery.launch("image/*")
+                    else {
+                        val dir = File(cacheDir, "shots").apply { mkdirs() }
+                        val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.files", File(dir, "ocr.jpg"))
+                        ocrUri = uri
+                        ocrCamera.launch(uri)
+                    }
+                } catch (e: Exception) {
+                    sendOcr(null, e.message ?: "error")
                 }
             }
         }

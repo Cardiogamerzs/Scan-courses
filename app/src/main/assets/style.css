@@ -373,3 +373,9 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,
 .home .modules .module{box-shadow:0 8px 20px rgba(0,0,0,.10)}
 .wpgroup{margin:12px 0 8px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .wpgroup:first-of-type{margin-top:4px}
+.unknownbox{background:var(--surface);border:1px dashed var(--line);border-radius:20px;padding:16px 18px;margin-top:6px}
+.unknownbox b{font-family:var(--f-display);font-size:17px}
+.unknownbox p{margin:6px 0 0;color:var(--muted);font-size:14px}
+.row.col{flex-direction:column}
+.userinci{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:6px 0 4px;font-size:13px}
+.sheet textarea{width:100%;box-sizing:border-box;font:inherit;font-size:14px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:12px;resize:vertical}

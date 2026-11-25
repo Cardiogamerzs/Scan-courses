@@ -28,14 +28,14 @@ jobs:
         id: offcache
         with:
           path: offdata
-          key: offdata-v2-${{ steps.week.outputs.w }}
+          key: offdata-v3-${{ steps.week.outputs.w }}
 
       - name: Télécharger la base Open Food Facts / Open Beauty Facts
         if: steps.offcache.outputs.cache-hit != 'true'
         run: python3 tools/fetch-off-csv.py offdata 50000 8000
 
       - name: Construire la base hors ligne de l'appli
-        run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl
+        run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl && node tools/diag-cosmetics.mjs
 
       - uses: actions/setup-java@v4
         with:
@@ -58,8 +58,8 @@ jobs:
       - name: Publier dans les Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v4.0.${{ github.run_number }}
-          name: Sovée 4.0.${{ github.run_number }}
+          tag_name: v4.1.${{ github.run_number }}
+          name: Sovée 4.1.${{ github.run_number }}
           body: |
             Télécharge **Sovee.apk** sur ton téléphone Android et ouvre-le pour l'installer.
             Lien direct, toujours vers la dernière version :

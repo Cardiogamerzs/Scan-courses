@@ -60,13 +60,14 @@ def food(r):
         "additives_tags": tags(r.get("additives_tags")), "allergens_tags": tags(r.get("allergens_tags") or r.get("allergens")),
         "traces_tags": tags(r.get("traces_tags")), "ingredients_analysis_tags": tags(r.get("ingredients_analysis_tags")),
         "labels_tags": tags(r.get("labels_tags")), "origins_tags": tags(r.get("origins_tags")), "packaging_tags": tags(r.get("packaging_tags")),
-        "ingredients_text_fr": (r.get("ingredients_text") or "")[:1500], "image_front_small_url": r.get("image_small_url", ""),
+        "ingredients_text_fr": (r.get("ingredients_text") or r.get("ingredients_text_fr") or r.get("ingredients_text_en") or "")[:1500], "image_front_small_url": r.get("image_small_url", ""),
     }
 def beauty(r):
     return {
         "code": r["code"], "product_name": r.get("product_name", ""), "brands": r.get("brands", ""), "quantity": r.get("quantity", ""),
         "categories_tags": tags(r.get("categories_tags")), "labels_tags": tags(r.get("labels_tags")),
-        "ingredients_text": (r.get("ingredients_text") or "")[:3000], "image_front_small_url": r.get("image_small_url", ""),
+        "ingredients_text": (r.get("ingredients_text") or r.get("ingredients_text_fr") or r.get("ingredients_text_en") or "")[:3000],
+        "ingredients_tags": tags(r.get("ingredients_tags"))[:120], "image_front_small_url": r.get("image_small_url", ""),
     }
 
 def write(name, items):

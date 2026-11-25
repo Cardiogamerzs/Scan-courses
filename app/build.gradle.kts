@@ -12,8 +12,8 @@ android {
         minSdk = 26
         targetSdk = 35
         // À augmenter à chaque nouvelle version, pour pouvoir installer la mise à jour par-dessus.
-        versionCode = 5
-        versionName = "4.0"
+        versionCode = 6
+        versionName = "4.1"
     }
 
     signingConfigs {
@@ -48,4 +48,5 @@ dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
 }

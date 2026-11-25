@@ -287,4 +287,28 @@ add("es", {
     "Más de 2400 recetas te esperan, filtra por cocina del mundo 🌍", "La sal se esconde sobre todo en el pan, los platos preparados y los embutidos 🧂"],
 });
 Object.assign(window.I18N.es.themes, { rose: "Rosa", lemon: "Limón", coral: "Coral", sage: "Salvia", ocean: "Océano", forest: "Bosque", plum: "Ciruela", g_sunrise: "Amanecer", g_lagoon: "Laguna", g_meadow: "Pradera", g_candy: "Caramelo", g_lilac: "Lila", g_citrus: "Cítricos", g_aurora: "Aurora boreal", g_dusk: "Crepúsculo", g_deepsea: "Mar profundo", p_hearts: "Corazones", p_dots: "Lunares", p_waves: "Olas", p_fruits: "Frutas", p_stars: "Noche estrellada" });
+add("fr", {
+  u_isCosmetic: "C'est un cosmétique ? Ajouter sa composition", u_compUnknown: "Composition inconnue", u_compUnknownTxt: "Ce produit n'a pas de liste d'ingrédients dans les bases ouvertes. Sans elle, impossible de le noter ou de dire s'il présente un risque (y compris pendant la grossesse). Photographie la liste au dos de l'emballage et je l'analyse.",
+  u_noInfoTitle: "Informations insuffisantes", u_noInfoTxt: "Ni composition ni valeurs nutritionnelles pour ce produit : je ne peux donner aucun avis, ni sur sa qualité, ni sur les additifs, ni pour la grossesse. Ce n'est pas un bon point, juste une fiche vide.",
+  u_completeOff: "Compléter la fiche sur Open Food Facts", u_unkVerdict: "Composition inconnue : impossible de se prononcer", u_photoInci: "Photographier la liste d'ingrédients",
+  u_edit: "Modifier", u_yourInci: "Composition ajoutée par toi", u_inciTitle: "Composition du produit", u_inciHelp: "Prends en photo la liste d'ingrédients (souvent après « Ingredients » au dos), ou tape-la. Le texte est lu sur ton téléphone.",
+  u_namePh: "Nom du produit (ex. : lait corporel)", u_takePhoto: "Prendre en photo", u_fromGallery: "Galerie", u_ocrOk: "Texte lu, vérifie-le puis touche « Analyser »", u_ocrFail: "Je n'ai pas réussi à lire le texte. Rapproche-toi, évite les reflets et réessaie.",
+  u_reading: "Lecture du texte…", u_checkText: "La lecture automatique peut se tromper sur quelques lettres : corrige si besoin. La composition reste sur ton téléphone.", u_analyse: "Analyser la composition", u_tooShort: "La liste paraît trop courte : il faut les ingrédients séparés par des virgules.", u_removeInci: "Effacer cette composition",
+});
+add("en", {
+  u_isCosmetic: "Is it a cosmetic? Add its ingredients", u_compUnknown: "Unknown ingredients", u_compUnknownTxt: "This product has no ingredient list in the open databases. Without it, I can't score it or say whether it's risky (pregnancy included). Take a photo of the list on the back and I'll analyse it.",
+  u_noInfoTitle: "Not enough information", u_noInfoTxt: "No ingredients and no nutrition facts for this product: I can't give any opinion on quality, additives or pregnancy. That's not a good point, just an empty record.",
+  u_completeOff: "Complete it on Open Food Facts", u_unkVerdict: "Unknown ingredients: can't tell", u_photoInci: "Photograph the ingredient list",
+  u_edit: "Edit", u_yourInci: "Ingredients added by you", u_inciTitle: "Product ingredients", u_inciHelp: "Take a photo of the ingredient list (often after “Ingredients” on the back), or type it. The text is read on your phone.",
+  u_namePh: "Product name (e.g. body lotion)", u_takePhoto: "Take a photo", u_fromGallery: "Gallery", u_ocrOk: "Text read: check it, then tap “Analyse”", u_ocrFail: "I couldn't read the text. Get closer, avoid glare and try again.",
+  u_reading: "Reading text…", u_checkText: "Automatic reading can get a few letters wrong: fix them if needed. The list stays on your phone.", u_analyse: "Analyse ingredients", u_tooShort: "The list looks too short: ingredients should be separated by commas.", u_removeInci: "Delete these ingredients",
+});
+add("es", {
+  u_isCosmetic: "¿Es un cosmético? Añade su composición", u_compUnknown: "Composición desconocida", u_compUnknownTxt: "Este producto no tiene lista de ingredientes en las bases abiertas. Sin ella no puedo puntuarlo ni decir si tiene riesgos (embarazo incluido). Fotografía la lista del envase y la analizo.",
+  u_noInfoTitle: "Información insuficiente", u_noInfoTxt: "Sin ingredientes ni valores nutricionales: no puedo opinar sobre su calidad, aditivos ni embarazo. No es un buen punto, solo una ficha vacía.",
+  u_completeOff: "Completar la ficha en Open Food Facts", u_unkVerdict: "Composición desconocida: no se puede opinar", u_photoInci: "Fotografiar la lista de ingredientes",
+  u_edit: "Editar", u_yourInci: "Composición añadida por ti", u_inciTitle: "Composición del producto", u_inciHelp: "Fotografía la lista de ingredientes (a menudo tras «Ingredients») o escríbela. El texto se lee en tu teléfono.",
+  u_namePh: "Nombre del producto (ej.: leche corporal)", u_takePhoto: "Hacer foto", u_fromGallery: "Galería", u_ocrOk: "Texto leído: revísalo y toca «Analizar»", u_ocrFail: "No he podido leer el texto. Acércate, evita reflejos y vuelve a intentarlo.",
+  u_reading: "Leyendo el texto…", u_checkText: "La lectura automática puede equivocarse en alguna letra: corrígela si hace falta. La lista se queda en tu teléfono.", u_analyse: "Analizar la composición", u_tooShort: "La lista parece demasiado corta: los ingredientes van separados por comas.", u_removeInci: "Borrar esta composición",
+});
 })();
