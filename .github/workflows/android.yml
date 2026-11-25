@@ -58,8 +58,8 @@ jobs:
       - name: Publier dans les Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v3.0.${{ github.run_number }}
-          name: Scan Courses 3.0.${{ github.run_number }}
+          tag_name: v3.1.${{ github.run_number }}
+          name: Scan Courses 3.1.${{ github.run_number }}
           body: |
             Télécharge **ScanCourses.apk** sur ton téléphone Android et ouvre-le pour l'installer.
             Lien direct, toujours vers la dernière version :

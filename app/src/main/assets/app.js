@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "3.0";
+const APP_VERSION = "3.1";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -101,8 +101,7 @@ VIEWS.home = root => {
   };
   mods.append(
     mk("cards", "linear-gradient(135deg,#ff5a36,#e8336b)", t("modCards"), t("modCardsSub"), t("nCards", filled)),
-    mk("food", "linear-gradient(135deg,#1f9d55,#0f766e)", t("modFood"), t("modFoodSub"), null),
-    mk("docs", "linear-gradient(135deg,#3b5bdb,#6741d9)", t("modDocs"), t("modDocsSub"), t("nDocs", docs.length))
+    mk("food", "linear-gradient(135deg,#1f9d55,#0f766e)", t("modFood"), t("modFoodSub"), null)
   );
   // Modules ajoutés par les autres fichiers (QR, promos, recettes, équilibre, calories)
   for (const m of ctx.modules) { ICONS[m.key] = m.icon; mods.append(mk(m.key, m.color, m.title(), m.sub(), m.badge ? m.badge() : null)); }

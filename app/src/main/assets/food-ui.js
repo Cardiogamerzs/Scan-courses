@@ -201,8 +201,15 @@ VIEWS.product = rootEl => {
   const hero = h("div", { className: "phero" });
   const img = h("div", { className: "pbig" }); if (p.img) img.style.backgroundImage = "url('" + p.img + "')"; else img.textContent = p.type === "beauty" ? "🧴" : "🥫";
   const info = h("div", { className: "pinfo" }, h("small", { textContent: [p.brand, p.qty].filter(Boolean).join(" · ") }));
-  const verdict = h("div", { className: "verdict" }, ring(sc.score), h("div", {}, h("b", { textContent: scoreLabel(sc.score), style: "color:" + COLORS[R.scoreClass(sc.score)] }), h("small", { textContent: sc.score == null ? t("f_noScore") : (Math.round(sc.score / 5 * 10) / 10).toString().replace(".", ",") + "/20" })));
-  info.append(verdict);
+  if (p.type === "beauty") {
+    // Fiche cosmétique : nom, marque, pastille de couleur avec la note /100
+    hero.classList.add("bhero");
+    info.textContent = "";
+    info.append(h("b", { className: "bname", textContent: p.name || p.code }), h("span", { className: "bbrand", textContent: [p.brand, p.qty].filter(Boolean).join(" · ") }),
+      h("div", { className: "bscore" }, dot(COLORS[R.scoreClass(sc.score)]), h("div", {}, h("b", { textContent: (sc.score == null ? "?" : sc.score) + "/100" }), h("span", { textContent: scoreLabel(sc.score) }))));
+  }
+  const verdict = p.type === "beauty" ? null : h("div", { className: "verdict" }, ring(sc.score), h("div", {}, h("b", { textContent: scoreLabel(sc.score), style: "color:" + COLORS[R.scoreClass(sc.score)] }), h("small", { textContent: sc.score == null ? t("f_noScore") : (Math.round(sc.score / 5 * 10) / 10).toString().replace(".", ",") + "/20" })));
+  if (verdict) info.append(verdict);
   if (p.type !== "beauty") {
     const chips = h("div", { className: "chips" });
     if (p.ns) chips.append(h("span", { className: "chip ns ns-" + p.ns, textContent: "Nutri-Score " + p.ns.toUpperCase() }));
@@ -309,38 +316,71 @@ function envTab(body, p) {
   body.append(h("div", { className: "nlist" }, ...rows));
   if (!F.weights.environment) body.append(h("p", { className: "notice", textContent: t("e_notCounted") }));
 }
+const RISK_ICON = { allergen: ["🌼", "tg_allergenP"], irritant: ["🔥", "tg_irritant"], ed: ["🧬", "tg_ed"], cancer1: ["☢️", "tg_cancer1"], cancer2A: ["☢️", "tg_cancer2A"], cancer2B: ["☢️", "tg_cancer2B"],
+  repro: ["👶", "tg_repro"], env: ["🌊", "tg_env"], preg: ["🤰", "tg_preg"] };
+const RC = { high: LV.high, mod: LV.mid, low: "#f2c200", none: LV.low, unk: LV.none };
+function riskLine(lv) { return h("div", { className: "rline" }, dot(RC[lv]), h("span", { textContent: t("rl_" + lv) })); }
+function ingredientSheet(x) {
+  const C = root.CosmeticDB, e = x.entry;
+  openSheet(sh => {
+    sh.append(h("h2", { textContent: x.name }), riskLine(x.lv));
+    if (x.name.toLowerCase() !== x.label.toLowerCase()) sh.append(h("p", { className: "sub", textContent: "INCI : " + x.label }));
+    sh.append(h("h3", { className: "shh", textContent: t("b_healthRisks") }));
+    const tags = e ? e.tags.filter(k => RISK_ICON[k]) : [];
+    if (tags.length) { const g = h("div", { className: "riskgrid" }); tags.forEach(k => g.append(h("div", { className: "risktile" }, h("span", { className: "rico", textContent: RISK_ICON[k][0] }), h("small", { textContent: t(RISK_ICON[k][1]) })))); sh.append(g); }
+    else sh.append(h("p", { className: "sub", textContent: x.lv === "unk" ? t("rk_unkSub") : t("b_noKnownRisk") }));
+    sh.append(h("h3", { className: "shh", textContent: t("b_details") }));
+    if (e) sh.append(h("p", { className: "sub", textContent: t("b_role") + " : " + e.fn }), h("p", { className: "why2", textContent: e.why }));
+    else sh.append(h("p", { className: "why2", textContent: t("rk_unkWhy") }));
+    const refs = e ? [...(e.refs || []), ...e.src.map(k => C.SOURCES[k] || k)] : [];
+    if (refs.length) {
+      sh.append(h("h3", { className: "shh", textContent: t("b_sciSources") }));
+      const list = h("div", { className: "reflist" }); refs.forEach((r, i) => { const el = h("div", { textContent: r }); if (i >= 4) el.hidden = true; list.append(el); });
+      sh.append(list);
+      if (refs.length > 4) { const more = h("button", { type: "button", className: "linkbtn", textContent: t("b_seeMore") }); more.onclick = () => { list.querySelectorAll("[hidden]").forEach(el => el.hidden = false); more.remove(); }; sh.append(more); }
+    }
+    const close = h("button", { type: "button", className: "btn primary full", textContent: t("close") }); close.onclick = closeSheet;
+    sh.append(h("div", { className: "row" }, close));
+  });
+}
+function ingRow(x) {
+  const b = h("button", { type: "button", className: "ingrow" }, h("div", { className: "nmeta" }, h("b", { textContent: x.name }), riskLine(x.lv)));
+  const i = h("span", { className: "infoi", textContent: "i" }); b.append(i);
+  b.onclick = () => ingredientSheet(x);
+  return b;
+}
 function beautyHealth(body, p, sc) {
   const C = root.CosmeticDB;
-  const tagTxt = x => ({ ed: t("tg_ed"), cancer1: t("tg_cancer1"), cancer2A: t("tg_cancer2A"), cancer2B: t("tg_cancer2B"), allergen: t("tg_allergen"), irritant: t("tg_irritant"), repro: t("tg_repro"), env: t("tg_env"), preg: t("tg_preg") })[x];
-  const RC = { high: LV.high, mod: LV.mid, low: "#e8c20c", none: LV.low, unk: LV.none };
   if (!p.inci || !C) {
-    body.append(h("p", { className: "sub", textContent: t("b_noInci") }));
-    body.append(h("p", { className: "notice", textContent: t("b_source") }));
+    body.append(h("p", { className: "sub", textContent: t("b_noInci") }), h("p", { className: "notice", textContent: t("b_source2") }));
     return;
   }
   const comp = C.composition(p.inci);
-  // Résumé : nombre d'ingrédients par niveau de risque
-  const counts = { high: 0, mod: 0, low: 0, none: 0, unk: 0 }; comp.forEach(x => counts[x.lv]++);
-  const sum = h("div", { className: "risksum" });
-  ["high", "mod", "low", "none", "unk"].forEach(k => { if (!counts[k]) return; const c = h("span", { className: "rchip" }, dot(RC[k]), h("b", { textContent: counts[k] }), " " + t("rk_" + k)); sum.append(c); });
-  body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("b_composition") }), h("span", { textContent: t("b_nIng", comp.length) })), sum,
-    h("p", { className: "sub", textContent: t("b_tapHelp") }));
-  // Ingrédients à risque d'abord, puis l'ordre de la liste
-  const ord = { high: 0, mod: 1, low: 2, none: 3, unk: 4 };
+  // Qualités
+  const qs = C.qualities(comp);
+  if (qs.length) {
+    body.append(h("h3", { className: "bsect", textContent: t("b_qualities") }));
+    const ql = h("div", { className: "blist" });
+    qs.forEach(q => ql.append(h("div", { className: "qrow" }, h("div", { className: "qico" }, h("span", { textContent: q.ico }), h("i", { textContent: "✓" })), h("div", { className: "nmeta" }, h("b", { textContent: q.title }), h("small", { textContent: q.why })))));
+    body.append(ql);
+  }
+  // Composition : ingrédients à risque d'abord (fort → faible), puis « X autres ingrédients sans risque »
+  const ord = { high: 0, mod: 1, low: 2, unk: 3, none: 4 };
   const sorted = comp.map((x, i) => ({ ...x, i })).sort((a, b) => ord[a.lv] - ord[b.lv] || a.i - b.i);
-  const list = h("div", { className: "nlist" });
-  sorted.forEach(x => {
-    const e = x.entry;
-    const sub = e ? [e.fn, ...(e.tags || []).map(tagTxt).filter(Boolean)].join(" · ") : t("rk_unkSub");
-    const det = [];
-    if (e) {
-      det.push(h("p", { className: "why" }, h("b", { textContent: t("rk_" + e.lv) + (e.name.toLowerCase() !== x.label.toLowerCase() ? " · " + e.name : "") + " — " }), e.why));
-      if (e.src && e.src.length) det.push(h("div", { className: "srcs" }, h("small", { textContent: t("b_sources") }), ...e.src.map(k => h("small", { textContent: "• " + (C.SOURCES[k] || k) }))));
-    } else det.push(h("p", { className: "why", textContent: t("rk_unkWhy") }));
-    list.append(item("", x.label, sub, t("rk_" + x.lv + "S"), RC[x.lv], det));
-  });
+  const risky = sorted.filter(x => x.lv !== "none"), safe = sorted.filter(x => x.lv === "none");
+  const all = h("button", { type: "button", className: "linkbtn", textContent: t("b_seeAll") });
+  body.append(h("div", { className: "bsect2" }, h("h3", { className: "bsect", textContent: t("b_composition") }), all));
+  const list = h("div", { className: "blist" });
+  risky.forEach(x => list.append(ingRow(x)));
+  const others = h("div", { className: "others" }); others.hidden = true; safe.forEach(x => others.append(ingRow(x)));
+  if (safe.length) {
+    const grp = h("button", { type: "button", className: "ingrow grp" }, h("div", { className: "nmeta" }, h("b", { textContent: t("b_others", safe.length) }), riskLine("none")), h("span", { className: "chev", textContent: "⌄" }));
+    const toggle = open => { others.hidden = !open; grp.classList.toggle("opened", open); all.textContent = open ? t("b_seeLess") : t("b_seeAll"); };
+    grp.onclick = () => toggle(others.hidden); all.onclick = () => toggle(others.hidden);
+    list.append(grp, others);
+  } else all.hidden = true;
   body.append(list);
-  if (counts.high + counts.mod === 0) body.append(h("p", { className: "sub", textContent: t("b_clean") }));
+  if (!risky.length) body.append(h("p", { className: "sub", textContent: t("b_clean") }));
   body.append(h("details", { className: "ing" }, h("summary", { textContent: t("f_ingredients") }), h("p", { textContent: p.inci })));
   body.append(h("p", { className: "notice", textContent: t("b_source2") }));
 }

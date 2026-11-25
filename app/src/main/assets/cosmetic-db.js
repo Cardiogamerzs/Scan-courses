@@ -138,6 +138,7 @@ const RAW = [
   [/cetearyl alcohol|cetyl alcohol|stearyl alcohol|behenyl alcohol|myristyl alcohol/, "Alcool gras", "none", "Émollient, épaississant", "Malgré son nom, ce n'est pas un alcool desséchant : c'est une cire douce issue des huiles végétales.", [], []],
   [/glyceryl stearate|glyceryl oleate|glyceryl caprylate|sorbitan|cetearyl glucoside|coco-glucoside|decyl glucoside|lauryl glucoside|caprylyl\/capryl glucoside|sucrose|polyglyceryl/, "Émulsifiant doux", "none", "Émulsifiant", "Émulsifiant ou tensioactif doux, généralement d'origine végétale.", [], []],
   [/\boil\b|butter|huile|beurre/, "Huile ou beurre végétal", "none", "Émollient", "Huile ou beurre végétal nourrissant. Allergie possible seulement en cas d'allergie connue à la plante (ex. fruits à coque).", [], []],
+  [/hexanediol|1,2-hexanediol|caprylhydroxamic acid|glyceryl caprylate|levulinic acid|sodium levulinate|sodium anisate|p-anisic acid/, "Conservateur doux", "none", "Conservateur, humectant", "Conservateur ou co-conservateur doux, bien toléré aux doses utilisées.", [], []],
   [/caprylic\/capric triglyceride|squalane|coco-caprylate|dicaprylyl|isoamyl laurate|c12-15 alkyl benzoate|ethylhexyl palmitate|octyldodecanol|isononyl isononanoate|caprylyl glycol|ethylhexylglycerin/, "Émollient", "none", "Émollient", "Émollient bien toléré qui donne de la douceur.", [], []],
   [/dimethicone|amodimethicone|dimethiconol|cyclomethicone|silica|silicone/, "Silicone ou silice", "none", "Texturant", "Inerte et bien toléré par la peau ; les silicones non volatils sont peu biodégradables.", [], []],
   [/tocopherol|tocopheryl|vitamin e/, "Vitamine E", "none", "Antioxydant", "Antioxydant protecteur, très bien toléré.", [], []],
@@ -150,16 +151,63 @@ const RAW = [
   [/extract|extrait|leaf|flower|root|seed|fruit|juice|hydrolat|hydrolyzed/, "Extrait végétal", "none", "Soin", "Extrait de plante ; allergie possible seulement en cas de sensibilité à la plante.", [], []]
 ];
 
-const DB = RAW.map(([re, name, lv, fn, why, src, tags]) => ({ re, name, lv, fn, why, src, tags }));
+// Références précises, quand elles existent, ajoutées aux sources générales
+const REFS = {
+  "Parabène interdit": ["Règlement (UE) n° 358/2014 – interdiction de cinq parabènes"],
+  "Butylparabène": ["Règlement (UE) n° 1004/2014 – limites du propyl- et du butylparabène"],
+  "Propylparabène": ["Règlement (UE) n° 1004/2014 – limites du propyl- et du butylparabène"],
+  "Lilial (butylphenyl methylpropional)": ["Règlement (UE) 2021/1902 – interdiction de substances CMR"],
+  "Pyrithione de zinc": ["Règlement (UE) 2021/1902 – interdiction de substances CMR"],
+  "Formaldéhyde": ["CIRC, Monographie volume 100F (2012) – formaldéhyde", "INRS, fiche toxicologique FT 7 – formaldéhyde"],
+  "Libérateur de formaldéhyde": ["CIRC, Monographie volume 100F (2012) – formaldéhyde", "INRS, fiche toxicologique FT 7 – formaldéhyde"],
+  "Méthylisothiazolinone (MIT)": ["Règlement (UE) 2016/1198 – MIT interdite dans les produits sans rinçage"],
+  "Méthylchloroisothiazolinone": ["Règlement (UE) n° 1003/2014 – mélange MCI/MIT limité aux produits rincés"],
+  "Talc": ["CIRC, Monographie volume 136 (2024) – talc"],
+  "Nanoparticules": ["CIRC, Monographie volume 93 (2010) – dioxyde de titane"],
+  "Cocamide DEA / diéthanolamine": ["CIRC, Monographie volume 101 (2013) – condensat de diéthanolamine d'huile de coco"],
+  "Phénoxyéthanol": ["ANSM, recommandation de 2012 sur le phénoxyéthanol chez l'enfant de moins de 3 ans"]
+};
+// Noms affichés en français pour les ingrédients courants
+const FR = { "aqua": "Eau", "water": "Eau", "aqua (water)": "Eau", "water (aqua)": "Eau", "glycerin": "Glycérine", "panthenol": "Vitamine B5 (panthénol)", "allantoin": "Allantoïne",
+  "tocopherol": "Vitamine E (tocophérol)", "tocopheryl acetate": "Vitamine E (acétate de tocophéryle)", "xanthan gum": "Gomme xanthane", "sodium chloride": "Sel (chlorure de sodium)",
+  "citric acid": "Acide citrique", "lactic acid": "Acide lactique", "sodium hydroxide": "Soude (hydroxyde de sodium)", "sodium benzoate": "Benzoate de sodium", "potassium sorbate": "Sorbate de potassium",
+  "parfum": "Parfum", "parfum (fragrance)": "Parfum", "fragrance": "Parfum", "cetrimonium bromide": "Bromure de cétrimonium", "cetrimonium chloride": "Chlorure de cétrimonium",
+  "sodium lauryl sulfate": "Laurylsulfate de sodium", "sodium laureth sulfate": "Laureth sulfate de sodium", "niacinamide": "Vitamine B3 (niacinamide)", "sodium hyaluronate": "Acide hyaluronique (sel)",
+  "hyaluronic acid": "Acide hyaluronique", "urea": "Urée", "salicylic acid": "Acide salicylique", "alcohol denat.": "Alcool dénaturé", "alcohol denat": "Alcool dénaturé", "alcohol": "Alcool",
+  "titanium dioxide": "Dioxyde de titane", "zinc oxide": "Oxyde de zinc", "talc": "Talc", "kaolin": "Kaolin (argile)", "butyrospermum parkii butter": "Beurre de karité",
+  "butyrospermum parkii (shea) butter": "Beurre de karité", "cocos nucifera oil": "Huile de coco", "argania spinosa kernel oil": "Huile d'argan", "simmondsia chinensis seed oil": "Huile de jojoba",
+  "prunus amygdalus dulcis oil": "Huile d'amande douce", "olea europaea fruit oil": "Huile d'olive", "helianthus annuus seed oil": "Huile de tournesol", "aloe barbadensis leaf juice": "Jus d'aloe vera",
+  "cetearyl alcohol": "Alcool cétéarylique", "cetyl alcohol": "Alcool cétylique", "phenoxyethanol": "Phénoxyéthanol", "limonene": "Limonène", "linalool": "Linalol", "citral": "Citral",
+  "geraniol": "Géraniol", "citronellol": "Citronellol", "coumarin": "Coumarine", "eugenol": "Eugénol", "benzyl alcohol": "Alcool benzylique", "dimethicone": "Diméthicone", "silica": "Silice",
+  "caprylic/capric triglyceride": "Triglycérides caprylique/caprique", "squalane": "Squalane", "propylene glycol": "Propylène glycol", "butylene glycol": "Butylène glycol",
+  "disodium edta": "EDTA disodique", "tetrasodium edta": "EDTA tétrasodique", "cera alba": "Cire d'abeille", "beeswax": "Cire d'abeille", "lanolin": "Lanoline", "mica": "Mica", "caffeine": "Caféine",
+  "bisabolol": "Bisabolol", "ascorbic acid": "Vitamine C (acide ascorbique)", "retinol": "Rétinol (vitamine A)", "retinyl palmitate": "Palmitate de rétinyle (vitamine A)", "methylparaben": "Méthylparabène",
+  "ethylparaben": "Éthylparabène", "propylparaben": "Propylparabène", "butylparaben": "Butylparabène", "triclosan": "Triclosan", "1,2-hexanediol": "1,2-Hexanediol", "sodium cocoamphoacetate": "Cocoamphoacétate de sodium",
+  "cocamidopropyl betaine": "Cocamidopropyl bétaïne", "coco-glucoside": "Coco-glucoside", "decyl glucoside": "Décyl glucoside", "glyceryl stearate": "Stéarate de glycéryle", "paraffinum liquidum": "Huile minérale (paraffine liquide)",
+  "petrolatum": "Vaseline", "aluminum chlorohydrate": "Chlorhydrate d'aluminium", "methylisothiazolinone": "Méthylisothiazolinone", "benzophenone-3": "Benzophénone-3", "octocrylene": "Octocrylène", "homosalate": "Homosalate" };
+// Familles (le nom de la famille ne remplace pas le nom de l'ingrédient)
+const GENERIC = new Set(["Huile ou beurre végétal", "Émulsifiant doux", "Émollient", "Silicone ou silice", "Actif apaisant ou hydratant", "Épaississant", "Régulateur ou stabilisant", "Tensioactif doux",
+  "Minéral", "Cire", "Extrait végétal", "Conservateur doux", "Alcool gras", "Glycol", "Allergène de parfum", "Colorant (CI)", "Dérivé éthoxylé (PEG, polysorbate…)", "Dérivé pétrolier (huile minérale, vaseline)",
+  "Filtre UV chimique", "Ammonium quaternaire", "Polymère plastique (microplastique)", "Parabène interdit", "Libérateur de formaldéhyde", "Sel d'aluminium", "Musc synthétique", "Nanoparticules", "Alcool"]);
+function cap(s) { return s.replace(/\s+/g, " ").replace(/(^|[\s(\-\/])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()); }
+function displayName(label, e) {
+  const k = label.toLowerCase().replace(/\s+/g, " ").trim();
+  if (FR[k]) return FR[k];
+  if (e && !GENERIC.has(e.name)) return e.name.replace(/ \(.*\)$/, "") === e.name ? e.name : e.name;
+  return /^[A-Z0-9 ,\-()\/\[\].]+$/.test(label) ? cap(label.toLowerCase()) : label;
+}
+const DB = RAW.map(([re, name, lv, fn, why, src, tags]) => ({ re, name, lv, fn, why, src, tags, refs: REFS[name] || [] }));
 
 // Découpe la liste INCI en ingrédients (en ignorant les virgules entre parenthèses)
 function splitInci(text) {
   const out = []; let cur = "", depth = 0;
   const s = String(text || "").replace(/^\s*(ingr[ée]dients?|ingredients|composition|inci)\s*:?/i, "").replace(/\s+/g, " ");
-  for (const ch of s) {
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
     if (ch === "(" || ch === "[") depth++;
     if (ch === ")" || ch === "]") depth = Math.max(0, depth - 1);
-    if ((ch === "," || ch === ";" || ch === "•" || ch === "·") && depth === 0) { out.push(cur); cur = ""; } else cur += ch;
+    const numComma = ch === "," && /\d/.test(s[i - 1] || "") && /\d/.test(s[i + 1] || ""); // 1,2-hexanediol
+    if ((ch === "," || ch === ";" || ch === "•" || ch === "·") && depth === 0 && !numComma) { out.push(cur); cur = ""; } else cur += ch;
   }
   out.push(cur);
   return out.map(x => x.replace(/[*°.]+$/g, "").replace(/^[\s\-–*]+|[\s*]+$/g, "").trim()).filter(x => x && x.length < 120);
@@ -173,8 +221,20 @@ function lookup(ing) {
 function composition(inci) {
   const seen = new Set();
   return splitInci(inci).filter(x => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
-    .map(ing => { const e = lookup(ing); return { label: ing, entry: e, lv: e ? e.lv : "unk" }; });
+    .map(ing => { const e = lookup(ing); return { label: ing, name: displayName(ing, e), entry: e, lv: e ? e.lv : "unk" }; });
 }
 
-root.CosmeticDB = { SOURCES, DB, splitInci, lookup, composition };
+// Qualités du produit (absence d'ingrédients controversés), sur la liste complète
+const QUALITIES = [
+  ["noParaben", "🧴", "Sans parabène nocif", "Certains parabènes (butyl, propyl et les parabènes interdits) sont suspectés d'être des perturbateurs endocriniens.", c => !c.some(x => x.entry && /^(Butylparabène|Propylparabène|Parabène interdit)$/.test(x.entry.name))],
+  ["noSulfate", "🫧", "Sans sulfate irritant", "Le laurylsulfate (SLS) est un détergent puissant qui décape et irrite la peau.", c => !c.some(x => x.entry && x.entry.name === "Laurylsulfate (SLS)")],
+  ["noEd", "🧬", "Sans perturbateur endocrinien suspecté", "Aucun ingrédient de la composition n'est sur les listes de perturbateurs endocriniens suspectés.", c => !c.some(x => x.entry && x.entry.tags.includes("ed"))],
+  ["noFormol", "⚗️", "Sans formaldéhyde", "Ni formaldéhyde ni conservateur qui en libère (cancérogène certain, allergène).", c => !c.some(x => x.entry && /formaldéhyde/i.test(x.entry.name))],
+  ["noAllergen", "🌸", "Sans allergène de parfum", "Pas de parfum ni d'allergène de parfum à déclaration obligatoire : idéal pour les peaux sensibles.", c => !c.some(x => x.entry && x.entry.tags.includes("allergen") && /Parfum/.test(x.entry.fn))],
+  ["noSilicone", "🌊", "Sans silicone persistant", "Pas de silicone volatil (D4, D5, D6), très persistant dans l'environnement.", c => !c.some(x => x.entry && /Silicone volatil/.test(x.entry.fn))],
+  ["noPlastic", "♻️", "Sans microplastique", "Pas de polymère plastique ajouté qui pollue durablement l'eau.", c => !c.some(x => x.entry && /microplastique/.test(x.entry.name))]
+];
+function qualities(comp) { return comp.length ? QUALITIES.filter(q => q[4](comp)).map(([k, ico, title, why]) => ({ k, ico, title, why })) : []; }
+
+root.CosmeticDB = { SOURCES, DB, splitInci, lookup, composition, qualities, displayName };
 })(typeof window !== "undefined" ? window : globalThis);

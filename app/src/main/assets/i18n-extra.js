@@ -215,4 +215,31 @@ add("es", {
   pr_elsewhere: n => "Precios registrados en otros sitios (" + n + ")", pr_source: "Precios: Open Prices (Open Food Facts), licencia ODbL, y tus notas. Comprueba siempre en tienda.",
   pr_compare: "Comparar precios cerca de mí", pr_clearMine: "Borrar mis precios"
 });
+add("fr", {
+  rl_high: "Risque fort", rl_mod: "Risque modéré", rl_low: "Risque faible", rl_none: "Sans risque", rl_unk: "Non évalué",
+  tg_allergenP: "Allergène potentiel", b_healthRisks: "Risques sur la santé", b_noKnownRisk: "Aucun risque connu aux doses utilisées en cosmétique.",
+  b_details: "Détails", b_role: "Rôle", b_sciSources: "Sources scientifiques", b_seeMore: "Voir plus", b_seeLess: "Voir moins", b_qualities: "Qualités", b_seeAll: "Voir tout",
+  b_others: n => n + (n > 1 ? " autres ingrédients" : " autre ingrédient"),
+  k_cuisAll: "Toutes", k_seeMore: n => "Voir plus (" + n + ")", k_nEq: n => n + " recettes équilibrées",
+  k_menuHelp: "Ton menu se renouvelle tout seul chaque lundi, avec des plats piochés parmi plus de 1 000 recettes équilibrées : 2 poissons, des légumes secs, de la volaille et peu de viande rouge. Touche 🔄 pour changer un repas.",
+  k_cuis_fr: "France", k_cuis_mag: "Maghreb", k_cuis_it: "Italie", k_cuis_es: "Espagne", k_cuis_us: "États-Unis", k_cuis_mx: "Mexique", k_cuis_as: "Asie", k_cuis_in: "Inde", k_cuis_med: "Grèce, Liban, Turquie", k_cuis_af: "Afrique", k_cuis_ww: "Healthy & monde"
+});
+add("en", {
+  rl_high: "High risk", rl_mod: "Moderate risk", rl_low: "Low risk", rl_none: "No risk", rl_unk: "Not assessed",
+  tg_allergenP: "Potential allergen", b_healthRisks: "Health risks", b_noKnownRisk: "No known risk at the doses used in cosmetics.",
+  b_details: "Details", b_role: "Role", b_sciSources: "Scientific sources", b_seeMore: "See more", b_seeLess: "See less", b_qualities: "Qualities", b_seeAll: "See all",
+  b_others: n => n + (n > 1 ? " other ingredients" : " other ingredient"),
+  k_cuisAll: "All", k_seeMore: n => "See more (" + n + ")", k_nEq: n => n + " balanced recipes",
+  k_menuHelp: "Your menu renews itself every Monday, drawn from over 1,000 balanced recipes: 2 fish, pulses, poultry and little red meat. Tap 🔄 to change a meal.",
+  k_cuis_fr: "France", k_cuis_mag: "Maghreb", k_cuis_it: "Italy", k_cuis_es: "Spain", k_cuis_us: "USA", k_cuis_mx: "Mexico", k_cuis_as: "Asia", k_cuis_in: "India", k_cuis_med: "Greece, Lebanon, Turkey", k_cuis_af: "Africa", k_cuis_ww: "Healthy & world"
+});
+add("es", {
+  rl_high: "Riesgo alto", rl_mod: "Riesgo moderado", rl_low: "Riesgo bajo", rl_none: "Sin riesgo", rl_unk: "No evaluado",
+  tg_allergenP: "Alérgeno potencial", b_healthRisks: "Riesgos para la salud", b_noKnownRisk: "Ningún riesgo conocido en las dosis usadas en cosmética.",
+  b_details: "Detalles", b_role: "Función", b_sciSources: "Fuentes científicas", b_seeMore: "Ver más", b_seeLess: "Ver menos", b_qualities: "Cualidades", b_seeAll: "Ver todo",
+  b_others: n => n + (n > 1 ? " ingredientes más" : " ingrediente más"),
+  k_cuisAll: "Todas", k_seeMore: n => "Ver más (" + n + ")", k_nEq: n => n + " recetas equilibradas",
+  k_menuHelp: "Tu menú se renueva solo cada lunes, elegido entre más de 1000 recetas equilibradas: 2 pescados, legumbres, aves y poca carne roja. Toca 🔄 para cambiar una comida.",
+  k_cuis_fr: "Francia", k_cuis_mag: "Magreb", k_cuis_it: "Italia", k_cuis_es: "España", k_cuis_us: "EE. UU.", k_cuis_mx: "México", k_cuis_as: "Asia", k_cuis_in: "India", k_cuis_med: "Grecia, Líbano, Turquía", k_cuis_af: "África", k_cuis_ww: "Saludable y mundo"
+});
 })();

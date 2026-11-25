@@ -62,7 +62,16 @@ function shopView(body) {
 /* ================= Recettes ================= */
 const CATS = ["all", "matin", "entree", "soupe", "plat", "dessert"];
 const FILTERS = ["eq", "rapide", "budget", "enfant", "vege", "vegan", "gf", "preg"];
-let rTab = "ideas", rCat = "all", rQuery = "", rFilters = null;
+let rTab = "ideas", rCat = "all", rQuery = "", rFilters = null, rCuis = "all";
+const PAGE = 40;
+const FLAG = Object.fromEntries((K.CUISINES || []).map(([k, f]) => [k, f]));
+function cuisineChips(cur, onTap) { return chips([["all", "🌍 " + t("k_cuisAll")]].concat((K.CUISINES || []).map(([k, f, n]) => [k, f + " " + t("k_cuis_" + k)])), k => cur === k, onTap); }
+function pagedList(list, rows, more) {
+  let shown = 0;
+  const btn = h("button", { type: "button", className: "btn", style: "margin-top:10px;width:100%" });
+  const step = () => { rows.slice(shown, shown + PAGE).forEach(r => list.append(recipeRow(r))); shown += PAGE; btn.hidden = shown >= rows.length; btn.textContent = t("k_seeMore", Math.min(PAGE, rows.length - shown)); };
+  btn.onclick = step; more.textContent = ""; more.append(btn); step();
+}
 function initFilters() {
   if (rFilters) return;
   const d = food().diets || [];
@@ -84,7 +93,7 @@ function recipeRow(r) {
   const n = K.recipeNutrition(r), d = K.recipeDiet(r);
   const b = h("button", { type: "button", className: "prow" });
   b.append(h("div", { className: "pimg", textContent: ({ matin: "🥣", entree: "🥗", soupe: "🍲", plat: "🍽️", dessert: "🍰" })[r.c] }),
-    h("div", { className: "pmeta" }, h("b", { textContent: r.n }), h("small", { textContent: [r.t + " min", n.kcal + " kcal/" + t("k_portion"), d.vegan ? "🌱 vegan" : d.vege ? "🥕 " + t("k_vege") : null, r.tg.includes("eq") ? "⚖️ " + t("k_eq") : null].filter(Boolean).join(" · ") })));
+    h("div", { className: "pmeta" }, h("b", { textContent: r.n }), h("small", { textContent: [(FLAG[r.w] || "") + " " + r.t + " min", n.kcal + " kcal/" + t("k_portion"), d.vegan ? "🌱 vegan" : d.vege ? "🥕 " + t("k_vege") : null, r.tg.includes("eq") ? "⚖️ " + t("k_eq") : null].filter(Boolean).join(" · ") })));
   b.onclick = () => openRecipe(r.id);
   return b;
 }
@@ -117,16 +126,17 @@ function ideasView(body) {
   const box = h("label", { className: "search", htmlFor: "r-q", style: "margin-top:14px" }); box.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'; box.append(q);
   body.append(box);
   body.append(chips(CATS.map(c => [c, t("k_cat_" + c)]), k => rCat === k, k => { rCat = k; ctx.render(); }));
+  body.append(cuisineChips(rCuis, k => { rCuis = k; ctx.render(); }));
   body.append(chips(FILTERS.map(f => [f, t("k_f_" + f)]), k => rFilters.has(k), k => { rFilters.has(k) ? rFilters.delete(k) : rFilters.add(k); ctx.render(); }));
-  const list = h("div", { className: "plist", style: "margin-top:12px" }), info = h("p", { className: "sub" });
+  const list = h("div", { className: "plist", style: "margin-top:12px" }), info = h("p", { className: "sub" }), more = h("div");
   const fill = () => {
     list.textContent = "";
-    const rows = K.RECIPES.filter(r => matches(r, rFilters, rCat, rQuery));
+    const rows = K.RECIPES.filter(r => (rCuis === "all" || r.w === rCuis) && matches(r, rFilters, rCat, rQuery));
     info.textContent = t("k_nRecipes", rows.length);
-    rows.forEach(r => list.append(recipeRow(r)));
+    pagedList(list, rows, more);
   };
   let timer; q.oninput = () => { rQuery = q.value; clearTimeout(timer); timer = setTimeout(fill, 200); };
-  body.append(info, list); fill();
+  body.append(info, list, more); fill();
   body.append(h("p", { className: "notice", textContent: t("k_recipeNote") }));
 }
 
@@ -216,42 +226,57 @@ function guideView(body) {
   body.append(preg);
   body.append(h("p", { className: "notice", textContent: t("k_pnnsSource") }));
 }
+let eqCat = "all", eqCuis = "all";
 function eqList(body) {
   initFilters();
   body.append(h("p", { className: "sub", textContent: t("k_eqHelp") }));
-  const list = h("div", { className: "plist" });
-  K.RECIPES.filter(r => r.tg.includes("eq") && matches(r, rFilters, "all", "")).forEach(r => list.append(recipeRow(r)));
-  body.append(list);
+  body.append(chips(CATS.map(c => [c, t("k_cat_" + c)]), k => eqCat === k, k => { eqCat = k; ctx.render(); }));
+  body.append(cuisineChips(eqCuis, k => { eqCuis = k; ctx.render(); }));
+  const rows = K.RECIPES.filter(r => r.tg.includes("eq") && (eqCuis === "all" || r.w === eqCuis) && matches(r, rFilters, eqCat, ""));
+  const list = h("div", { className: "plist", style: "margin-top:12px" }), more = h("div");
+  body.append(h("p", { className: "sub", textContent: t("k_nEq", rows.length) }), list, more);
+  pagedList(list, rows, more);
 }
 /* Menu équilibré de la semaine : midi et soir, 2 poissons, 2 légumes secs, peu de viande rouge */
 function kind(r) {
   const ids = r.i.map(x => x[0]);
-  if (ids.some(id => /saumon|cabillaud|thon|sardine|crevette|moule/.test(id))) return "fish";
-  if (ids.some(id => /boeuf|porc|lardons|boeufhache/.test(id))) return "red";
-  if (ids.some(id => /poulet|cuisse|dinde|jambon/.test(id))) return "poultry";
-  if (ids.some(id => /lentille|corail|pchiche|hrouge/.test(id))) return "legume";
+  if (ids.some(id => /saumon|cabillaud|thon|sardine|crevette|moule|colin|truite|dorade|maquereau|calamar/.test(id))) return "fish";
+  if (ids.some(id => /boeuf|porc|lardons|agneau|veau|saucisse|merguez|chorizo/.test(id))) return "red";
+  if (ids.some(id => /poulet|cuisse|dinde|jambon|magret/.test(id))) return "poultry";
+  if (ids.some(id => /lentille|corail|pchiche|hrouge|harblanc|pois$|feve/.test(id))) return "legume";
   return "veg";
 }
 function menuPool() {
   initFilters();
   return K.RECIPES.filter(r => r.c === "plat" && r.tg.includes("eq") && matches(r, rFilters, "all", ""));
 }
-function buildMenu() {
-  const pool = menuPool(); if (!pool.length) return null;
-  const shuffled = pool.slice().sort(() => Math.random() - .5);
+/* Semaine ISO : le menu se renouvelle tout seul chaque lundi */
+function weekStart(d) { const x = new Date(d || Date.now()); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
+function weekKey(d) { const m = weekStart(d); return m.getFullYear() + "-" + (m.getMonth() + 1) + "-" + m.getDate(); }
+function seeded(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t2 = Math.imul(a ^ (a >>> 15), 1 | a); t2 = (t2 + Math.imul(t2 ^ (t2 >>> 7), 61 | t2)) ^ t2; return ((t2 ^ (t2 >>> 14)) >>> 0) / 4294967296; }; }
+function shuffle(arr, rnd) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function buildMenu(auto, avoid) {
+  const all = menuPool(); if (!all.length) return null;
+  const rnd = auto ? seeded(weekStart().getTime() / 86400000) : Math.random;
+  const fresh = avoid ? all.filter(r => !avoid.has(r.id)) : all;
+  const pool = fresh.length >= 20 ? fresh : all;
+  const shuffled = shuffle(pool, rnd);
   const pick = [], used = new Set();
   const take = (k, n) => { for (const r of shuffled) { if (n <= 0) break; if (!used.has(r.id) && kind(r) === k) { pick.push(r.id); used.add(r.id); n--; } } };
   take("fish", 2); take("legume", 3); take("red", 1); take("poultry", 3);
   for (const r of shuffled) { if (pick.length >= 14) break; if (!used.has(r.id) && kind(r) !== "red") { pick.push(r.id); used.add(r.id); } }
   while (pick.length < 14) pick.push(shuffled[pick.length % shuffled.length].id); // petite base : on répète
-  const order = pick.sort(() => Math.random() - .5);
+  const order = shuffle(pick, rnd);
   // Soir : une soupe ou une entrée équilibrée en plus, un soir sur deux
-  const light = K.RECIPES.filter(r => (r.c === "soupe" || r.c === "entree") && r.tg.includes("eq") && matches(r, rFilters, "all", "")).sort(() => Math.random() - .5);
-  return { created: Date.now(), days: Array.from({ length: 7 }, (_, d) => ({ lunch: order[d * 2], dinner: order[d * 2 + 1], starter: d % 2 && light.length ? light[d % light.length].id : null })) };
+  const light = shuffle(K.RECIPES.filter(r => (r.c === "soupe" || r.c === "entree") && r.tg.includes("eq") && matches(r, rFilters, "all", "")), rnd);
+  return { created: weekStart().getTime(), week: weekKey(), days: Array.from({ length: 7 }, (_, d) => ({ lunch: order[d * 2], dinner: order[d * 2 + 1], starter: d % 2 && light.length ? light[d % light.length].id : null })) };
 }
 function menuView(body) {
   let menu = lsGet(MENU_KEY, null);
-  if (!menu || !menu.days) { menu = buildMenu(); if (menu) lsSet(MENU_KEY, menu); }
+  if (!menu || !menu.days || menu.week !== weekKey()) {
+    const prev = new Set(menu && menu.days ? menu.days.flatMap(d => [d.lunch, d.dinner]) : []);
+    menu = buildMenu(true, prev); if (menu) lsSet(MENU_KEY, menu);
+  }
   if (!menu) { body.append(h("p", { className: "sub", textContent: t("k_noMenu") })); return; }
   body.append(h("p", { className: "sub", textContent: t("k_menuHelp") }));
   const start = new Date(menu.created);
