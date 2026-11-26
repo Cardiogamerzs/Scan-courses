@@ -5,14 +5,15 @@ plugins {
 
 android {
     namespace = "fr.erwan.scancourses"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "fr.erwan.scancourses"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // À augmenter à chaque nouvelle version, pour pouvoir installer la mise à jour par-dessus.
-        versionCode = 12
+        // Numéro du run GitHub Actions : toujours croissant (exigé par le Play Store)
+        versionCode = (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.plus(100)) ?: 12
         versionName = "4.7"
     }
 
@@ -25,11 +26,25 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // Clé d'upload Play Store : fournie par les secrets GitHub (jamais dans le dépôt)
+        val ks = System.getenv("SOVEE_KEYSTORE_FILE")
+        if (ks != null && file(ks).exists()) {
+            create("upload") {
+                storeFile = file(ks)
+                storePassword = System.getenv("SOVEE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("SOVEE_KEY_ALIAS")
+                keyPassword = System.getenv("SOVEE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName("debug")
+        }
+        release {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("upload")
         }
     }
 
@@ -39,6 +54,14 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+}
+
+// Version Play Store : identifiant fr.erwan.sovee (l'APK GitHub garde fr.erwan.scancourses,
+// pour que la version déjà installée continue de se mettre à jour)
+androidComponents {
+    onVariants(selector().withBuildType("release")) { v ->
+        v.applicationId.set("fr.erwan.sovee")
     }
 }
 

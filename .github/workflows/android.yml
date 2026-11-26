@@ -82,6 +82,22 @@ jobs:
       - name: Renommer l'APK
         run: cp app/build/outputs/apk/debug/app-debug.apk Sovee.apk
 
+      # Version Play Store (AAB signé avec la clé d'upload), seulement si la clé est dans les secrets
+      - name: Fabriquer l'AAB pour le Play Store
+        env:
+          KS_B64: ${{ secrets.SOVEE_KEYSTORE_BASE64 }}
+          SOVEE_KEYSTORE_PASSWORD: ${{ secrets.SOVEE_KEYSTORE_PASSWORD }}
+          SOVEE_KEY_ALIAS: ${{ secrets.SOVEE_KEY_ALIAS }}
+          SOVEE_KEY_PASSWORD: ${{ secrets.SOVEE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ]; then echo "Pas de clé d'upload dans les secrets : AAB non fabriqué."; exit 0; fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          export SOVEE_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks"
+          ./gradlew bundleRelease --no-daemon
+          cp app/build/outputs/bundle/release/app-release.aab Sovee-playstore.aab
+          rm -f "$RUNNER_TEMP/upload.jks"
+          ls -l Sovee-playstore.aab
+
       - uses: actions/upload-artifact@v4
         with:
           name: Sovee-apk
@@ -99,6 +115,7 @@ jobs:
           files: |
             Sovee.apk
             tr-en-review.json
+            Sovee-playstore.aab
           make_latest: true
 
   # Vérification sur un vrai Android (émulateur) : installation, lancement, parcours de tous les écrans
@@ -127,10 +144,10 @@ jobs:
         run: |
           curl -s "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/rappelconso-v2-gtin-trie/records?limit=2&order_by=date_publication%20desc&where=categorie_produit%3D%22alimentation%22" | head -c 4000 || true
 
-      - name: Tester sur l'émulateur Android 14
+      - name: Tester sur l'émulateur Android 15
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 35
           target: google_apis
           arch: x86_64
           disable-animations: true

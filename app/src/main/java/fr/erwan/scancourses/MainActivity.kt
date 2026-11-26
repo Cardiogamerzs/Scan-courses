@@ -35,6 +35,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import android.widget.FrameLayout
 import androidx.webkit.WebViewAssetLoader
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
@@ -60,6 +64,7 @@ import java.util.UUID
 class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
+    private lateinit var root: FrameLayout
     private val docsDir by lazy { File(filesDir, "docs").apply { mkdirs() } }
 
     // Résultat du scanner de documents de Google (recto, verso)
@@ -230,7 +235,21 @@ class MainActivity : AppCompatActivity() {
             }
             addJavascriptInterface(Bridge(), "Android")
         }
-        setContentView(web)
+        // Plein écran bord à bord (obligatoire depuis Android 15/16) : la page est décalée
+        // sous la barre d'état et au-dessus de la barre de navigation et du clavier.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        @Suppress("DEPRECATION")
+        window.statusBarColor = Color.TRANSPARENT
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = Color.TRANSPARENT
+        root = FrameLayout(this).apply { setBackgroundColor(getColor(R.color.bg)) }
+        root.addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val b = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime())
+            v.setPadding(b.left, b.top, b.right, b.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+        setContentView(root)
 
         if (savedInstanceState == null) {
             web.loadUrl("https://appassets.androidplatform.net/index.html")
@@ -537,17 +556,11 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 try {
                     val c = Color.parseColor(hex)
-                    @Suppress("DEPRECATION")
-                    window.statusBarColor = c
-                    @Suppress("DEPRECATION")
-                    window.navigationBarColor = c
+                    root.setBackgroundColor(c)
                     web.setBackgroundColor(c)
-                    @Suppress("DEPRECATION")
-                    var flags = window.decorView.systemUiVisibility
-                    @Suppress("DEPRECATION")
-                    flags = if (lightBars) flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR else flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
-                    @Suppress("DEPRECATION")
-                    window.decorView.systemUiVisibility = flags
+                    val ctl = WindowCompat.getInsetsController(window, root)
+                    ctl.isAppearanceLightStatusBars = lightBars
+                    ctl.isAppearanceLightNavigationBars = lightBars
                 } catch (_: Exception) {
                 }
             }
