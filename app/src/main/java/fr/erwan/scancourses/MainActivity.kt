@@ -36,6 +36,10 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
+import com.google.android.gms.tasks.Tasks
+import java.util.concurrent.Executors
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.json.JSONArray
 import org.json.JSONObject
@@ -206,6 +210,46 @@ class MainActivity : AppCompatActivity() {
         web.saveState(outState)
     }
 
+    // Détourage des photos de produits (fond blanc), une à la fois, sur le téléphone
+    private val cutPool = Executors.newSingleThreadExecutor()
+    private val cutDir by lazy { File(docsDir, "cut").apply { mkdirs() } }
+    private val segmenter by lazy {
+        SubjectSegmentation.getClient(SubjectSegmenterOptions.Builder().enableForegroundBitmap().build())
+    }
+    private fun sendCut(code: String, path: String?) {
+        js("window.onCutout && window.onCutout(" + JSONObject.quote(code) + "," + (if (path == null) "null" else JSONObject.quote(path)) + ")")
+    }
+    private fun makeCutout(code: String, url: String) {
+        val safe = code.filter { it.isLetterOrDigit() }.take(32)
+        val out = File(cutDir, "$safe.jpg")
+        if (out.exists()) { sendCut(code, "cut/$safe.jpg"); return }
+        val c = URL(url).openConnection() as HttpURLConnection
+        c.connectTimeout = 12000; c.readTimeout = 15000
+        c.setRequestProperty("User-Agent", "Sovee-Android/4.3")
+        val src = c.inputStream.use { BitmapFactory.decodeStream(it) } ?: throw Exception("image")
+        c.disconnect()
+        val res = Tasks.await(segmenter.process(InputImage.fromBitmap(src, 0)))
+        val fg = res.foregroundBitmap ?: throw Exception("segmentation")
+        // Cadre serré autour du produit
+        val w = fg.width; val h = fg.height
+        val px = IntArray(w * h); fg.getPixels(px, 0, w, 0, 0, w, h)
+        var minX = w; var minY = h; var maxX = -1; var maxY = -1
+        for (y in 0 until h) for (x in 0 until w) if ((px[y * w + x] ushr 24) > 40) {
+            if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y
+        }
+        if (maxX < 0 || (maxX - minX) * (maxY - minY) < w * h / 25) throw Exception("vide")
+        val bw = maxX - minX + 1; val bh = maxY - minY + 1
+        val side = (maxOf(bw, bh) * 1.12f).toInt()
+        val sq = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+        val cv = android.graphics.Canvas(sq)
+        cv.drawColor(Color.WHITE)
+        cv.drawBitmap(fg, android.graphics.Rect(minX, minY, maxX + 1, maxY + 1),
+            android.graphics.Rect((side - bw) / 2, (side - bh) / 2, (side - bw) / 2 + bw, (side - bh) / 2 + bh), android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
+        val fin = if (side > 480) Bitmap.createScaledBitmap(sq, 480, 480, true) else sq
+        FileOutputStream(out).use { fin.compress(Bitmap.CompressFormat.JPEG, 88, it) }
+        sendCut(code, "cut/$safe.jpg")
+    }
+
     private fun js(code: String) = runOnUiThread { web.evaluateJavascript(code, null) }
 
     private fun sendScan(text: String?, formatOrError: String) {
@@ -327,12 +371,32 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** Détoure la photo d'un produit (Open Food/Beauty Facts) sur fond blanc ; résultat par window.onCutout(code, chemin). */
+        @JavascriptInterface
+        fun cutout(code: String, url: String) {
+            val host = try { URL(url).host } catch (e: Exception) { "" }
+            if (!url.startsWith("https://") || host !in setOf("images.openfoodfacts.org", "images.openbeautyfacts.org", "static.openfoodfacts.org", "static.openbeautyfacts.org")) { sendCut(code, null); return }
+            cutPool.execute { try { makeCutout(code, url) } catch (e: Exception) { sendCut(code, null) } }
+        }
+
         /** Copie un texte dans le presse-papiers. */
         @JavascriptInterface
         fun copy(text: String) {
             runOnUiThread {
                 val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("Scan Courses", text))
+                cm.setPrimaryClip(ClipData.newPlainText("Sovée", text))
+            }
+        }
+
+        /** Lit le presse-papiers ; résultat par window.onPaste(texte). */
+        @JavascriptInterface
+        fun paste() {
+            runOnUiThread {
+                val txt = try {
+                    val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                    cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this@MainActivity)?.toString() ?: ""
+                } catch (e: Exception) { "" }
+                web.evaluateJavascript("window.onPaste && window.onPaste(" + JSONObject.quote(txt) + ")", null)
             }
         }
 

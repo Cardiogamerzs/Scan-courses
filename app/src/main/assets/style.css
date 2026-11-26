@@ -161,7 +161,7 @@ label.f,.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight
 .sect2 span{color:var(--muted);font-size:13px}
 .plist{display:flex;flex-direction:column;gap:8px}
 .prow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px;cursor:pointer}
-.pimg{flex:none;width:52px;height:52px;border-radius:12px;background:var(--bg) center/contain no-repeat;display:flex;align-items:center;justify-content:center;font-size:24px}
+.pimg{flex:none;width:56px;height:56px;border-radius:14px;background:#fff center/contain no-repeat;background-origin:content-box;padding:3px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:24px}
 .pmeta{flex:1;min-width:0}
 .pmeta b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pmeta small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -170,7 +170,7 @@ label.f,.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight
 .grow b{font-size:15px}.grow small{color:var(--muted)}
 .grow[disabled]{opacity:.45;cursor:default}
 .phero{display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px}
-.pbig{flex:none;width:96px;height:96px;border-radius:14px;background:#fff center/contain no-repeat;display:flex;align-items:center;justify-content:center;font-size:40px;border:1px solid var(--line)}
+.pbig{flex:none;width:124px;height:124px;border-radius:22px;background:#fff center/contain no-repeat;background-origin:content-box;padding:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 6px 18px rgba(40,10,25,.10)}
 .pinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
 .pinfo>small{color:var(--muted)}
 .verdict{display:flex;align-items:center;gap:12px}
@@ -313,7 +313,7 @@ textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);backgroun
 
 /* Fiche cosmétique */
 .bhero{background:transparent;border:0;padding:6px 0;align-items:flex-start}
-.bhero .pbig{width:110px;height:140px;background-color:#fff}
+.bhero .pbig{width:124px;height:150px;background-color:#fff}
 .bname{font-family:var(--f-display);font-size:22px;line-height:1.15}
 .bbrand{color:var(--muted);font-size:15px}
 .bscore{display:flex;align-items:center;gap:10px;margin-top:6px}

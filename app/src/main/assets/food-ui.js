@@ -40,9 +40,47 @@ function pill(score, over20) {
 }
 function dot(kind) { const el = h("span", { className: "ndot" }); el.style.background = kind; return el; }
 const LV = { low: "#1f9d55", mid: "#e8900c", high: "#d93a2b", good: "#1f9d55", ok: "#7cc242", none: "#9aa0ad" };
+/* Photo du produit : de face, détourée sur fond blanc (détourage fait sur le téléphone, gardé en cache) */
+const CUT = lsGet("sc-cut", {}), cutFail = new Set(), cutWait = {}, cutQueue = [];
+let cutBusy = false;
+function bigImg(u) { return (u || "").replace(/\.(100|200)\.jpg$/, ".400.jpg"); }
+function paintImg(el, url) { el.textContent = ""; el.classList.add("hasimg"); el.style.backgroundImage = "url('" + url + "')"; }
+function cutNext() {
+  if (cutBusy || !cutQueue.length) return;
+  const { code, url } = cutQueue.shift(); cutBusy = true;
+  const guard = setTimeout(() => window.onCutout(code, null), 30000);
+  cutWait[code] = (cutWait[code] || []); cutWait[code].guard = guard;
+  try { NATIVE.cutout(code, url); } catch (e) { window.onCutout(code, null); }
+}
+window.onCutout = (code, path) => {
+  const w = cutWait[code] || []; clearTimeout(w.guard); delete cutWait[code];
+  if (path) { CUT[code] = path; lsSet("sc-cut", CUT); w.forEach(el => el.isConnected && paintImg(el, ctx.imgSrc(path))); }
+  else cutFail.add(code);
+  cutBusy = false; cutNext();
+};
+function wantCut(el, code, url) {
+  if (!NATIVE || !NATIVE.cutout || cutFail.has(code) || !/^https:\/\/(images|static)\.open(food|beauty)facts\.org\//.test(url)) return;
+  if (cutWait[code]) { cutWait[code].push(el); return; }
+  cutWait[code] = [el]; cutQueue.push({ code, url: bigImg(url) }); cutNext();
+}
+const seenIO = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return; seenIO.unobserve(e.target); e.target._show && e.target._show();
+}), { rootMargin: "120px" }) : null;
+function productImage(el, p, big) {
+  el.textContent = p.type === "beauty" ? "🧴" : "🥫";
+  if (CUT[p.code]) { paintImg(el, ctx.imgSrc(CUT[p.code])); return el; }
+  const show = url => { paintImg(el, big ? bigImg(url) : url); wantCut(el, p.code, url); };
+  el._show = () => {
+    if (p.img) return show(p.img);
+    // ligne d'index sans photo : on va la chercher dans la base locale
+    D.localProduct(p.code, p.type === "beauty" ? "beauty" : "food").then(q => { if (q && q.img) { p.img = q.img; show(q.img); } }).catch(() => {});
+  };
+  if (big || !seenIO) el._show(); else seenIO.observe(el);
+  return el;
+}
 function productRow(p, opts = {}) {
   const b = h("button", { type: "button", className: "prow" });
-  const th = h("div", { className: "pimg" }); if (p.img) th.style.backgroundImage = "url('" + p.img + "')"; else th.textContent = p.type === "beauty" ? "🧴" : "🥫";
+  const th = productImage(h("div", { className: "pimg" }), p);
   const meta = h("div", { className: "pmeta" }, h("b", { textContent: p.name || p.code }), h("small", { textContent: [p.brand, opts.sub].filter(Boolean).join(" · ") }));
   b.append(th, meta, pill(opts.score !== undefined ? opts.score : scoreOf(p), opts.over20));
   b.onclick = () => openProduct(p.code, p);
@@ -202,7 +240,7 @@ VIEWS.product = rootEl => {
   const sc = p.type === "beauty" ? R.scoreCosmetic(p) : R.scoreFood(p, F.weights);
   wrap.append(h("header", {}, header(p.name || p.code, { back: true })));
   const hero = h("div", { className: "phero" });
-  const img = h("div", { className: "pbig" }); if (p.img) img.style.backgroundImage = "url('" + p.img + "')"; else img.textContent = p.type === "beauty" ? "🧴" : "🥫";
+  const img = productImage(h("div", { className: "pbig" }), p, true);
   const info = h("div", { className: "pinfo" }, h("small", { textContent: [p.brand, p.qty].filter(Boolean).join(" · ") }));
   if (p.type === "beauty") {
     // Fiche cosmétique : nom, marque, pastille de couleur avec la note /100
@@ -372,12 +410,14 @@ function beautyHealth(body, p, sc) {
   if (!p.inci || !C) {
     body.append(h("div", { className: "unknownbox" }, h("b", { textContent: "❔ " + t("u_compUnknown") }), h("p", { textContent: t("u_compUnknownTxt") })));
     const b = h("button", { type: "button", className: "btn primary full", textContent: "📷 " + t("u_photoInci") });
-    b.onclick = () => inciEditor(p.code, p.name, "", false);
-    body.append(h("div", { className: "row col" }, b), h("p", { className: "notice", textContent: t("b_source2") }));
+    b.onclick = () => inciEditor(p.code, p.name, "", false, p.brand);
+    const web = h("button", { type: "button", className: "btn full", textContent: "🔎 " + t("u_webSearch") });
+    web.onclick = () => { searchInciWeb(p); setTimeout(() => inciEditor(p.code, p.name, "", false, p.brand), 400); };
+    body.append(h("div", { className: "row col" }, b, web), h("p", { className: "notice", textContent: t("u_webHelp") }), h("p", { className: "notice", textContent: t("b_source2") }));
     return;
   }
   if (p.userInci) {
-    const ed = h("button", { type: "button", className: "linkbtn", textContent: t("u_edit") }); ed.onclick = () => inciEditor(p.code, p.name, p.inci, false);
+    const ed = h("button", { type: "button", className: "linkbtn", textContent: t("u_edit") }); ed.onclick = () => inciEditor(p.code, p.name, p.inci, false, p.brand);
     body.append(h("div", { className: "userinci" }, h("span", { textContent: "✍️ " + t("u_yourInci") }), ed));
   }
   const comp = C.composition(p.inci);
@@ -417,7 +457,11 @@ function cleanInci(raw) {
   const parts = x.split(/\.\s+(?=[A-ZÀ-Ü])/); x = parts.sort((a, b) => (b.match(/,/g) || []).length - (a.match(/,/g) || []).length)[0] || x;
   return x.replace(/\s*,\s*/g, ", ").replace(/[.;]\s*$/, "").trim();
 }
-function inciEditor(code, name, initial, askName) {
+function searchInciWeb(p) {
+  const q = [p.brand, p.name].filter(Boolean).join(" ") || p.code;
+  ctx.openUrl("https://www.google.com/search?q=" + encodeURIComponent(q + " ingrédients INCI composition"));
+}
+function inciEditor(code, name, initial, askName, brand) {
   openSheet(sh => {
     sh.append(h("h2", { textContent: t("u_inciTitle") }), h("p", { className: "sub", textContent: t("u_inciHelp") }));
     let nameIn = null;
@@ -435,6 +479,16 @@ function inciEditor(code, name, initial, askName) {
       gal.onclick = () => { status.textContent = t("u_reading"); NATIVE.ocrPhoto(true); };
       sh.append(h("div", { className: "row" }, cam, gal));
     }
+    const tools = h("div", { className: "row" });
+    const web = h("button", { type: "button", className: "btn", textContent: "🔎 " + t("u_webSearchShort") });
+    web.onclick = () => { searchInciWeb({ code, name: nameIn ? nameIn.value.trim() : name, brand: brand || "" }); };
+    const paste = h("button", { type: "button", className: "btn", textContent: "📋 " + t("u_paste") });
+    const putText = txt => { if (txt && txt.trim()) { ta.value = cleanInci(txt); status.textContent = "✓ " + t("u_pasted"); } else status.textContent = t("u_pasteEmpty"); };
+    paste.onclick = async () => {
+      if (NATIVE && NATIVE.paste) { window.onPaste = putText; try { NATIVE.paste(); return; } catch (e) {} }
+      try { putText(await navigator.clipboard.readText()); } catch (e) { status.textContent = t("u_pasteEmpty"); }
+    };
+    tools.append(web, paste); sh.append(tools);
     sh.append(status, h("div", { className: "f" }, ta), h("p", { className: "notice", textContent: t("u_checkText") }));
     const ok = h("button", { type: "button", className: "btn primary full", textContent: "✨ " + t("u_analyse") });
     ok.onclick = () => {
