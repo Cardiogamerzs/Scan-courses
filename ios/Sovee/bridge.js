@@ -25,6 +25,7 @@
     paste: call("paste"),
     takePhoto: call("takePhoto"),
     ocrPhoto: call("ocrPhoto"),
+    ocrUrl: call("ocrUrl"),
     setBars: call("setBars"),
     setBright: call("setBright"),
   };

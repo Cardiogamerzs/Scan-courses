@@ -532,6 +532,30 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** Lit le texte de la photo « ingrédients » d'un produit sur Open Food Facts (sur le téléphone) ;
+         *  résultat par window.onOcrUrl(code, texte, erreur). */
+        @JavascriptInterface
+        fun ocrUrl(code: String, url: String) {
+            val host = try { URL(url).host } catch (e: Exception) { "" }
+            val done = { text: String?, err: String? ->
+                js("window.onOcrUrl && window.onOcrUrl(" + JSONObject.quote(code) + "," + (if (text == null) "null" else JSONObject.quote(text)) + "," + (if (err == null) "null" else JSONObject.quote(err)) + ")")
+            }
+            if (!url.startsWith("https://") || host !in setOf("images.openfoodfacts.org", "static.openfoodfacts.org")) { done(null, "host"); return }
+            cutPool.execute {
+                try {
+                    val c = URL(url).openConnection() as HttpURLConnection
+                    c.connectTimeout = 12000; c.readTimeout = 20000
+                    c.setRequestProperty("User-Agent", "Sovee-Android/4.7")
+                    val bmp = c.inputStream.use { BitmapFactory.decodeStream(it) } ?: throw Exception("image")
+                    c.disconnect()
+                    val res = Tasks.await(TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(InputImage.fromBitmap(bmp, 0)))
+                    done(res.text, if (res.text.isBlank()) "empty" else null)
+                } catch (e: Exception) {
+                    done(null, e.message ?: "error")
+                }
+            }
+        }
+
         /** Photographie (ou choisit dans la galerie) un texte et le lit ; résultat par window.onOcr(texte, erreur). */
         @JavascriptInterface
         fun ocrPhoto(fromGallery: Boolean) {

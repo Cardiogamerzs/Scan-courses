@@ -523,6 +523,19 @@ function healthTab(body, p, sc) {
     });
     body.append(l);
   } else body.append(h("p", { className: "sub", textContent: p.ing ? t("f_noWatch") : t("f_noWatchUnk") }));
+  // Composition absente en texte mais photographiée sur Open Food Facts : lecture de la photo sur le téléphone
+  if ((!p.ing || p.ing === "x") && p.imgIng && NATIVE && NATIVE.ocrUrl && !ocrTried.has(p.code)) {
+    ocrTried.add(p.code);
+    const st = h("p", { className: "sub", textContent: "🔎 " + t("u_ocrOff") }); body.append(st);
+    const code = p.code;
+    window.onOcrUrl = (c, text, err) => {
+      if (c !== code) return;
+      const txt = text ? cleanInci(text) : "";
+      if (txt && (txt.match(/,/g) || []).length >= 2) { D.setUserInci(code, txt, "@off-photo"); if (ctx.view() === "product") openProduct(code); }
+      else st.textContent = t("u_ocrOffFail");
+    };
+    try { NATIVE.ocrUrl(code, p.imgIng); } catch (e) { st.textContent = t("u_ocrOffFail"); }
+  }
   // Composition inconnue partout : la lire en photo sur l'emballage (ou la taper)
   if (!p.ing || p.ing === "x") {
     const b = h("button", { type: "button", className: "btn primary full", textContent: "📷 " + t("u_photoInci") });
@@ -530,7 +543,7 @@ function healthTab(body, p, sc) {
     body.append(h("div", { className: "row col" }, b), h("p", { className: "notice", textContent: t("u_foodIngHelp") }));
   } else if (p.userIng) {
     const ed = h("button", { type: "button", className: "linkbtn", textContent: t("u_edit") }); ed.onclick = () => inciEditor(p.code, p.name, p.ing, false, p.brand, true);
-    body.append(h("div", { className: "userinci" }, h("span", { textContent: "✍️ " + t("u_yourInci") }), ed));
+    body.append(h("div", { className: "userinci" }, h("span", { textContent: (p.ingFromPhoto ? "📷 " + t("u_ingFromOffPhoto") : "✍️ " + t("u_yourInci")) }), ed));
   }
 
   // Grossesse / bébés
@@ -666,6 +679,7 @@ function searchInciWeb(p) {
   const q = [p.brand, p.name].filter(Boolean).join(" ") || p.code;
   ctx.openUrl("https://www.google.com/search?q=" + encodeURIComponent(q + " ingrédients INCI composition"));
 }
+const ocrTried = new Set();
 function inciEditor(code, name, initial, askName, brand, food) {
   openSheet(sh => {
     sh.append(h("h2", { textContent: t("u_inciTitle") }), h("p", { className: "sub", textContent: t("u_inciHelp") }));

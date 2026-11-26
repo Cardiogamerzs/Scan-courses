@@ -105,7 +105,7 @@ function normFood(r) {
     add: r.additives_tags || [], all: r.allergens_tags || [], tr: r.traces_tags || [], ana: r.ingredients_analysis_tags || [],
     lab: r.labels_tags || [], ori: r.origins_tags || [], pack: r.packaging_tags || [],
     ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || r.ingredients_text_it || r.ingredients_text_es || r.ingredients_text_de || r.ingredients_text_nl || r.ingredients_text_pt
-      || ((r.ingredients_tags || []).length > 1 ? r.ingredients_tags.map(t => t.replace(/^[a-z]{2}:/, "").replace(/-/g, " ")).join(", ") : "")).slice(0, 1500), img: r.image_front_small_url || "",
+      || ((r.ingredients_tags || []).length > 1 ? r.ingredients_tags.map(t => t.replace(/^[a-z]{2}:/, "").replace(/-/g, " ")).join(", ") : "")).slice(0, 1500), img: r.image_front_small_url || "", imgIng: r.image_ingredients_url || "",
     st: storeKeys((r.stores || "") + "," + (r.stores_tags || []).join(",") + "," + (r.brands || ""))
   };
   p.drink = R.isDrink(p) ? 1 : 0;
@@ -182,7 +182,7 @@ async function loadIndex(type) {
 }
 
 /* ---------- En ligne (si réseau) ---------- */
-const FOOD_FIELDS = "code,product_name_fr,product_name,generic_name_fr,brands,quantity,categories_tags,pnns_groups_1,pnns_groups_2,nutriscore_grade,nutriscore_score,nova_group,ecoscore_grade,ecoscore_score,environmental_score_grade,environmental_score_score,nutriments,additives_tags,allergens_tags,traces_tags,ingredients_analysis_tags,labels_tags,origins_tags,packaging_tags,ingredients_text_fr,ingredients_text,ingredients_text_en,ingredients_text_it,ingredients_text_es,ingredients_text_de,ingredients_text_nl,ingredients_text_pt,ingredients_tags,image_front_small_url";
+const FOOD_FIELDS = "code,product_name_fr,product_name,generic_name_fr,brands,quantity,categories_tags,pnns_groups_1,pnns_groups_2,nutriscore_grade,nutriscore_score,nova_group,ecoscore_grade,ecoscore_score,environmental_score_grade,environmental_score_score,nutriments,additives_tags,allergens_tags,traces_tags,ingredients_analysis_tags,labels_tags,origins_tags,packaging_tags,ingredients_text_fr,ingredients_text,ingredients_text_en,ingredients_text_it,ingredients_text_es,ingredients_text_de,ingredients_text_nl,ingredients_text_pt,ingredients_tags,image_front_small_url,image_ingredients_url";
 const BEAUTY_FIELDS = "code,product_name,product_name_fr,brands,quantity,categories_tags,ingredients_tags,ingredients_text,ingredients_text_fr,ingredients_text_en,labels_tags,image_front_small_url";
 async function withTimeout(url, ms) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
@@ -270,7 +270,7 @@ function finish(p, code) {
   // Aliment sans composition : celle photographiée ou tapée par l'utilisateur (additifs repérés dans le texte)
   if (p.type === "food" && (!p.ing || p.ing === "x")) {
     const u = userInci()[p.code] || userInci()[code];
-    if (u) p = { ...p, ing: u.t, userIng: true, add: (p.add || []).length ? p.add : eCodes(u.t) };
+    if (u) p = { ...p, ing: u.t, userIng: true, ingFromPhoto: u.n === "@off-photo", add: (p.add || []).length ? p.add : eCodes(u.t) };
   }
   return p;
 }
@@ -303,6 +303,7 @@ async function findProduct(code) {
   // Aliment sans composition dans la base du téléphone (souvent remplie dans une autre langue) : fiche en ligne
   if (p && p.type === "food" && (!p.ing || p.ing === "x")) {
     const f = await foodOnline(code);
+    if (f && !f.ing && f.imgIng) p = { ...p, imgIng: f.imgIng };
     if (f && f.ing) p = { ...p, ing: f.ing, add: (p.add || []).length ? p.add : f.add, ana: (p.ana || []).length ? p.ana : f.ana, all: (p.all || []).length ? p.all : f.all, tr: (p.tr || []).length ? p.tr : f.tr };
   }
   if (p && looksFood(p)) { const f = await foodOnline(code); if (f && !looksNonFood(f)) { seenPut(f); p = f; } }

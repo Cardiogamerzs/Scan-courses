@@ -96,6 +96,7 @@ final class NativeBridge: NSObject, WKScriptMessageHandler,
         case "paste": js("window.onPaste && window.onPaste(" + q(UIPasteboard.general.string ?? "") + ")")
         case "takePhoto": takePhoto()
         case "ocrPhoto": ocrPhoto(fromGallery: bool(a, 0))
+        case "ocrUrl": ocrUrl(code: str(a, 0), url: str(a, 1))
         case "setBars": vc?.setBars(hex: str(a, 0), light: bool(a, 1))
         case "setBright": setBright(bool(a, 0))
         case "geo": geo(id: Int(num(a, 0)))
@@ -370,6 +371,28 @@ final class NativeBridge: NSObject, WKScriptMessageHandler,
         DispatchQueue.global(qos: .userInitiated).async {
             do { try VNImageRequestHandler(cgImage: cg, orientation: orient).perform([req]) } catch { self.sendOcr(nil, error.localizedDescription) }
         }
+    }
+
+    /// Lit le texte de la photo « ingrédients » d'Open Food Facts ; résultat par window.onOcrUrl(code, texte, erreur).
+    private func ocrUrl(code: String, url: String) {
+        let done: (String?, String?) -> Void = { [weak self] text, err in
+            self?.js("window.onOcrUrl && window.onOcrUrl(" + NativeBridge.quote(code) + "," + NativeBridge.quote(text) + "," + NativeBridge.quote(err) + ")")
+        }
+        guard url.hasPrefix("https://"), let u = URL(string: url), let h = u.host, ["images.openfoodfacts.org", "static.openfoodfacts.org"].contains(h) else { return done(nil, "host") }
+        NativeBridge.session.dataTask(with: u) { data, _, _ in
+            guard let data = data, let img = UIImage(data: data), let cg = img.cgImage else { return done(nil, "image") }
+            let req = VNRecognizeTextRequest { r, err in
+                let obs = (r.results as? [VNRecognizedTextObservation]) ?? []
+                let lines = obs.sorted { a, b in
+                    abs(a.boundingBox.midY - b.boundingBox.midY) > 0.01 ? a.boundingBox.midY > b.boundingBox.midY : a.boundingBox.minX < b.boundingBox.minX
+                }.compactMap { $0.topCandidates(1).first?.string }
+                let text = lines.joined(separator: "\n")
+                if let e = err { done(nil, e.localizedDescription) } else { done(text, text.isEmpty ? "empty" : nil) }
+            }
+            req.recognitionLevel = .accurate
+            req.recognitionLanguages = ["fr-FR", "en-US"]
+            do { try VNImageRequestHandler(cgImage: cg, orientation: CGImagePropertyOrientation(img.imageOrientation)).perform([req]) } catch { done(nil, "error") }
+        }.resume()
     }
 
     // MARK: luminosité (affichage d'une carte de fidélité)

@@ -68,6 +68,10 @@ def main():
         d = dict(zip(names, r))
         found[str(d["code"])] = d
     print(f"Lignes trouvées dans le Parquet : {len(found)} en {time.time() - t0:.0f} s")
+    nz = sum(1 for d in found.values() if any((x.get("text") if isinstance(x, dict) else "") for x in (d["ingredients_text"] or [])) if not isinstance(d["ingredients_text"], str))
+    print(f"dont avec un texte d'ingrédients non vide (toutes langues) : {nz}")
+    ex = found.get("8000500228388")
+    if ex: print("Exemple Nutella b ready :", {k: (v if not isinstance(v, list) else v[:5]) for k, v in ex.items()})
     filled = 0
     for p in todo:
         d = found.get(str(p["code"]))
