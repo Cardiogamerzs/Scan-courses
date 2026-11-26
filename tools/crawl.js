@@ -11,8 +11,9 @@ window.__crawl = async function (lang) {
     if (m) out.issues.push(name + " → « " + txt.slice(Math.max(0, m.index - 40), m.index + 40).replace(/\s+/g, " ") + " »");
   };
   const home = async () => { for (let i = 0; i < 6 && window.onBack(); i++) await wait(120); await wait(200); };
-  if (lang) { const s = JSON.parse(localStorage.getItem("sc-settings")); s.lang = lang; localStorage.setItem("sc-settings", JSON.stringify(s)); }
   await home();
+  for (let i = 0; lang && i < 3 && document.documentElement.lang !== lang; i++) { const lb = document.querySelector(".homebar .langbtn:not(.micbtn)"); if (lb) lb.click(); await wait(300); }
+  out.lang = document.documentElement.lang;
   check("home");
   const n = document.querySelectorAll("button.module").length;
   for (let i = 0; i < n; i++) {

@@ -32,8 +32,7 @@ const click = (sel, txt) => ev(`(()=>{const b=[...document.querySelectorAll(${JS
 
 await send("Runtime.enable"); await send("Page.enable");
 await step("démarrage", async () => { report.version = await ev("document.querySelector('.version')&&document.querySelector('.version').innerText"); report.loadMs = await ev("performance.timing.loadEventEnd-performance.timing.navigationStart"); await shot("accueil"); });
-await step("réglages de test", async () => { await setSettings({ lang: "fr", meds: ["statin", "abx"], petName: "Minou", food: Object.assign({ setup: true, preset: "balanced", weights: { nutrition: 3, additives: 2, processing: 1, environment: 1, organic: 1 }, diets: [], pregnancy: true, baby: true, pregMode: true }, {}) }); });
-for (const L of ["fr", "en", "es"]) await step("parcours " + L, async () => { await ev(crawlSrc); report.crawl[L] = await ev(`window.__crawl(${JSON.stringify(L)})`); if (L !== "fr") { await setSettings({ lang: "fr" }); } });
+await step("parcours fr", async () => { await ev(crawlSrc); report.crawl.fr = await ev(`window.__crawl("fr")`); adb("shell screencap -p /sdcard/c.png"); adb("pull /sdcard/c.png " + OUT + "/20-apres-parcours.png"); });
 await step("fiche Nutella", async () => { await ev(crawlSrc); await ev("SoveeTest.open('3017620422003')", 7000); report.product = await ev("document.getElementById('app').innerText.slice(0,600)"); await shot("fiche-nutella"); });
 await step("fiche Skyr", async () => { await ev("SoveeTest.open('3033492056603')", 6000); report.product2 = await ev("(document.querySelector('.medalert')||{}).innerText||'pas d alerte medicament'"); await shot("fiche-skyr"); });
 await step("comparateur", async () => { await ev("SoveeTest.compare('3017620422003','3033492056603')", 5000); await shot("comparateur"); });
