@@ -78,7 +78,7 @@ def top(urls, keep, limit, extra=0, strict=False):
     if extra: print("marques distributeurs : déjà dans le top", inside, "· ajoutées", len(more))
     return best + more
 
-NUTS = ["energy-kcal_100g", "fat_100g", "saturated-fat_100g", "sugars_100g", "salt_100g", "fiber_100g", "proteins_100g"]
+NUTS = ["energy-kcal_100g", "fat_100g", "saturated-fat_100g", "sugars_100g", "salt_100g", "fiber_100g", "proteins_100g", "fruits-vegetables-nuts_100g", "fruits-vegetables-nuts-estimate_100g", "fruits-vegetables-nuts-estimate-from-ingredients_100g", "fruits-vegetables-legumes-estimate-from-ingredients_100g"]
 def food(r):
     return {
         "code": r["code"], "product_name": r.get("product_name", ""), "generic_name_fr": r.get("generic_name", ""),

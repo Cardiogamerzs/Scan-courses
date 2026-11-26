@@ -67,7 +67,8 @@ function normFood(r) {
     nova: r.nova_group ? parseInt(r.nova_group, 10) : null,
     eco: ((r.environmental_score_grade || r.ecoscore_grade || "") + "").toLowerCase().replace(/[^a-f]/g, "") || null,
     ecos: num(r.environmental_score_score ?? r.ecoscore_score),
-    n: { kcal: num(nu["energy-kcal_100g"]), fat: num(nu.fat_100g), sat: num(nu["saturated-fat_100g"]), sug: num(nu.sugars_100g), salt: num(nu.salt_100g), fib: num(nu.fiber_100g), prot: num(nu.proteins_100g) },
+    n: { kcal: num(nu["energy-kcal_100g"]), fat: num(nu.fat_100g), sat: num(nu["saturated-fat_100g"]), sug: num(nu.sugars_100g), salt: num(nu.salt_100g), fib: num(nu.fiber_100g), prot: num(nu.proteins_100g),
+      fv: num(nu["fruits-vegetables-nuts_100g"] ?? nu["fruits-vegetables-nuts-estimate_100g"] ?? nu["fruits-vegetables-legumes-estimate-from-ingredients_100g"] ?? nu["fruits-vegetables-nuts-estimate-from-ingredients_100g"]) },
     add: r.additives_tags || [], all: r.allergens_tags || [], tr: r.traces_tags || [], ana: r.ingredients_analysis_tags || [],
     lab: r.labels_tags || [], ori: r.origins_tags || [], pack: r.packaging_tags || [],
     ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || "").slice(0, 1500), img: r.image_front_small_url || ""
@@ -89,7 +90,7 @@ function normBeauty(r) {
 /* Ligne d'index compacte (recherche, classements, alternatives) */
 function indexRow(p) {
   if (p.type === "beauty") return { c: p.code, n: p.name, b: p.brand, r: p.rg, k: p.cats[p.cats.length - 1] || "", s: R.scoreCosmetic(p).score };
-  return { c: p.code, n: p.name, b: p.brand, r: p.rg, k: p.cats[p.cats.length - 1] || "", g: p.g2, ns: p.ns, s: p.nss, nv: p.nova, e: p.eco, o: R.isOrganic(p) ? 1 : 0,
+  return { c: p.code, n: p.name, b: p.brand, r: p.rg, k: p.cats[p.cats.length - 1] || "", k2: p.cats[p.cats.length - 2] || "", g: p.g2, ns: p.ns, s: p.nss, nv: p.nova, e: p.eco, o: R.isOrganic(p) ? 1 : 0,
     a: p.add.map(a => a.replace(/^en:/, "")), f: [p.n.fat, p.n.sat, p.n.sug, p.n.salt], d: p.drink, hi: p.ing ? 1 : 0,
     an: (p.ana || []).filter(x => /vegan|vegetarian|palm/.test(x)).map(x => x.replace(/^en:/, "")), al: (p.all || []).map(x => x.replace(/^en:/, "")) };
 }

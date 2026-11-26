@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "4.3";
+const APP_VERSION = "4.4";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -87,7 +87,7 @@ function themeFor(view) {
 let view = "home";
 const VIEWS = {};
 function go(v) { closeSheet(); view = v; applyTheme(themeFor(v === "options" ? optScope : v)); render(); window.scrollTo(0, 0); }
-function render() { document.documentElement.lang = settings.lang; const root = $("#app"); root.textContent = ""; $("#fabwrap").textContent = ""; VIEWS[view](root); }
+function render() { document.documentElement.lang = settings.lang; const root = $("#app"); root.textContent = ""; $("#fabwrap").textContent = ""; VIEWS[view](root); if (ctx.scanFab) ctx.scanFab(view); }
 window.onBack = () => {
   if ($("#layer").firstChild) { closeSheet(); return true; }
   if (view === "options") { go(optScope === "home" ? "home" : optScope); return true; }

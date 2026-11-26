@@ -311,4 +311,56 @@ add("es", {
   u_namePh: "Nombre del producto (ej.: leche corporal)", u_takePhoto: "Hacer foto", u_fromGallery: "Galería", u_ocrOk: "Texto leído: revísalo y toca «Analizar»", u_ocrFail: "No he podido leer el texto. Acércate, evita reflejos y vuelve a intentarlo.",
   u_reading: "Leyendo el texto…", u_checkText: "La lectura automática puede equivocarse en alguna letra: corrígela si hace falta. La lista se queda en tu teléfono.", u_analyse: "Analizar la composición", u_tooShort: "La lista parece demasiado corta: los ingredientes van separados por comas.", u_removeInci: "Borrar esta composición",
 });
+
+add("fr", {
+  ad_risk: "À risque", ad_limited: "Risque limité", ad_safe: "Sans risque", ad_unk: "Non évalué", ad_risk1: "À risque", ad_limited1: "Risque limité", ad_safe1: "Sans risque", ad_unk1: "Non évalué",
+  ad_show: "Afficher les additifs", ad_hasRisk: "Présence d'additifs à risque", ad_hasLimited: "Additifs à risque limité", ad_listTitle: "Liste des additifs",
+  ad_notice: "Classement d'après les réévaluations de l'EFSA, le CIRC, l'ANSES et les études de la cohorte NutriNet-Santé. Un additif autorisé reste légal : « à risque » signifie qu'il vaut mieux le limiter.",
+  ad_risks: "Risques potentiels associés", ad_noRisk: "Aucun risque identifié aux doses autorisées.", ad_unkRisk: "Cet additif n'est pas encore décrit dans la base de l'appli.", ad_unkWhy: "Pas encore de fiche détaillée pour cet additif.", ad_more: "En savoir plus sur internet",
+  tg_cancerRisk: "Lien avec des cancers (études)", tg_child: "Attention des enfants", tg_gut: "Microbiote / intestin", tg_heart: "Cœur et vaisseaux", tg_diabetes: "Diabète de type 2", tg_lax: "Effet laxatif", tg_nano: "Nanoparticules", tg_alu: "Aluminium",
+  f_watch: "À surveiller", f_noWatch: "Rien à signaler dans la composition 👍", f_noWatchUnk: "Liste d'ingrédients inconnue : impossible de tout vérifier.", f_per100x: u => "Pour 100 " + u,
+  w_allergens: "Allergènes", w_traces: "Traces possibles",
+  n_scale: (lo, hi, u) => "Repères pour 100 " + u + " : faible jusqu'à " + lo + ", élevé au-delà de " + hi + ".",
+  n_protScale: u => "Repères pour 100 " + u + " : bonne quantité dès 4 g, excellente dès 8 g.", n_fibScale: u => "Repères pour 100 " + u + " : bonne quantité dès 3 g, excellente dès 6 g.",
+  n_fv: "Fruits, légumes, légumineuses", fv_good: "Riche en fruits et légumes", fv_ok: "Quelques fruits et légumes", fv_none: "Peu ou pas de fruits et légumes", n_fvScale: "Part estimée dans le produit (fruits, légumes, légumineuses, fruits à coque). Excellent dès 80 %.",
+  q_none: "Faible quantité",
+  lvn_sug_low: "Peu de sucre", lvn_sug_mid: "Sucre modéré", lvn_sug_high: "Trop sucré", lvn_sat_low: "Peu de graisses saturées", lvn_sat_mid: "Graisses saturées modérées", lvn_sat_high: "Trop de graisses saturées",
+  lvn_salt_low: "Peu de sel", lvn_salt_mid: "Sel modéré", lvn_salt_high: "Trop salé", lvn_fat_low: "Peu de graisses", lvn_fat_mid: "Graisses modérées", lvn_fat_high: "Trop gras",
+  lvn_kcal_low: "Peu calorique", lvn_kcal_mid: "Calories modérées", lvn_kcal_high: "Très calorique",
+  al_milk: "lait", al_gluten: "gluten", al_eggs: "œufs", al_nuts: "fruits à coque", al_peanuts: "arachides", al_soybeans: "soja", al_fish: "poisson", al_crustaceans: "crustacés", al_molluscs: "mollusques", al_celery: "céleri", al_mustard: "moutarde", al_sesame_seeds: "sésame", al_sulphur_dioxide_and_sulphites: "sulfites", al_lupin: "lupin"
+});
+add("en", {
+  ad_risk: "Risky", ad_limited: "Limited risk", ad_safe: "No risk", ad_unk: "Not assessed", ad_risk1: "Risky", ad_limited1: "Limited risk", ad_safe1: "No risk", ad_unk1: "Not assessed",
+  ad_show: "Show additives", ad_hasRisk: "Contains risky additives", ad_hasLimited: "Limited-risk additives", ad_listTitle: "Additives",
+  ad_notice: "Rated from EFSA re-evaluations, IARC, ANSES and NutriNet-Santé cohort studies. Details are written in French.",
+  ad_risks: "Potential risks", ad_noRisk: "No risk identified at authorised doses.", ad_unkRisk: "This additive isn't described in the app yet.", ad_unkWhy: "No detailed sheet for this additive yet.", ad_more: "Learn more online",
+  tg_cancerRisk: "Linked to cancers (studies)", tg_child: "Children's attention", tg_gut: "Gut / microbiota", tg_heart: "Heart and vessels", tg_diabetes: "Type 2 diabetes", tg_lax: "Laxative effect", tg_nano: "Nanoparticles", tg_alu: "Aluminium",
+  f_watch: "To watch", f_noWatch: "Nothing to report in the ingredients 👍", f_noWatchUnk: "Ingredient list unknown: can't check everything.", f_per100x: u => "Per 100 " + u,
+  w_allergens: "Allergens", w_traces: "May contain",
+  n_scale: (lo, hi, u) => "Per 100 " + u + ": low up to " + lo + ", high above " + hi + ".",
+  n_protScale: u => "Per 100 " + u + ": good from 4 g, excellent from 8 g.", n_fibScale: u => "Per 100 " + u + ": good from 3 g, excellent from 6 g.",
+  n_fv: "Fruit, vegetables, legumes", fv_good: "Rich in fruit and veg", fv_ok: "Some fruit and veg", fv_none: "Little or no fruit and veg", n_fvScale: "Estimated share in the product. Excellent from 80 %.",
+  q_none: "Low amount",
+  lvn_sug_low: "Low sugar", lvn_sug_mid: "Moderate sugar", lvn_sug_high: "Too sugary", lvn_sat_low: "Low saturated fat", lvn_sat_mid: "Moderate saturated fat", lvn_sat_high: "Too much saturated fat",
+  lvn_salt_low: "Low salt", lvn_salt_mid: "Moderate salt", lvn_salt_high: "Too salty", lvn_fat_low: "Low fat", lvn_fat_mid: "Moderate fat", lvn_fat_high: "Too fatty",
+  lvn_kcal_low: "Low calorie", lvn_kcal_mid: "Moderate calories", lvn_kcal_high: "High calorie",
+  al_milk: "milk", al_gluten: "gluten", al_eggs: "eggs", al_nuts: "nuts", al_peanuts: "peanuts", al_soybeans: "soy", al_fish: "fish", al_crustaceans: "crustaceans", al_molluscs: "molluscs", al_celery: "celery", al_mustard: "mustard", al_sesame_seeds: "sesame", al_sulphur_dioxide_and_sulphites: "sulphites", al_lupin: "lupin"
+});
+add("es", {
+  ad_risk: "De riesgo", ad_limited: "Riesgo limitado", ad_safe: "Sin riesgo", ad_unk: "No evaluado", ad_risk1: "De riesgo", ad_limited1: "Riesgo limitado", ad_safe1: "Sin riesgo", ad_unk1: "No evaluado",
+  ad_show: "Ver los aditivos", ad_hasRisk: "Contiene aditivos de riesgo", ad_hasLimited: "Aditivos de riesgo limitado", ad_listTitle: "Aditivos",
+  ad_notice: "Clasificación según EFSA, IARC, ANSES y la cohorte NutriNet-Santé. Las fichas están en francés.",
+  ad_risks: "Riesgos potenciales", ad_noRisk: "Ningún riesgo identificado en las dosis autorizadas.", ad_unkRisk: "Este aditivo aún no está descrito en la app.", ad_unkWhy: "Aún no hay ficha detallada para este aditivo.", ad_more: "Más información en internet",
+  tg_cancerRisk: "Relacionado con cánceres (estudios)", tg_child: "Atención de los niños", tg_gut: "Intestino / microbiota", tg_heart: "Corazón y vasos", tg_diabetes: "Diabetes tipo 2", tg_lax: "Efecto laxante", tg_nano: "Nanopartículas", tg_alu: "Aluminio",
+  f_watch: "A vigilar", f_noWatch: "Nada que señalar en los ingredientes 👍", f_noWatchUnk: "Lista de ingredientes desconocida.", f_per100x: u => "Por 100 " + u,
+  w_allergens: "Alérgenos", w_traces: "Puede contener",
+  n_scale: (lo, hi, u) => "Por 100 " + u + ": bajo hasta " + lo + ", alto por encima de " + hi + ".",
+  n_protScale: u => "Por 100 " + u + ": buena desde 4 g, excelente desde 8 g.", n_fibScale: u => "Por 100 " + u + ": buena desde 3 g, excelente desde 6 g.",
+  n_fv: "Frutas, verduras, legumbres", fv_good: "Rico en frutas y verduras", fv_ok: "Algo de frutas y verduras", fv_none: "Poca o ninguna fruta y verdura", n_fvScale: "Parte estimada en el producto. Excelente desde 80 %.",
+  q_none: "Poca cantidad",
+  lvn_sug_low: "Poco azúcar", lvn_sug_mid: "Azúcar moderado", lvn_sug_high: "Demasiado azúcar", lvn_sat_low: "Pocas grasas saturadas", lvn_sat_mid: "Grasas saturadas moderadas", lvn_sat_high: "Demasiadas grasas saturadas",
+  lvn_salt_low: "Poca sal", lvn_salt_mid: "Sal moderada", lvn_salt_high: "Demasiada sal", lvn_fat_low: "Poca grasa", lvn_fat_mid: "Grasa moderada", lvn_fat_high: "Demasiada grasa",
+  lvn_kcal_low: "Pocas calorías", lvn_kcal_mid: "Calorías moderadas", lvn_kcal_high: "Muy calórico",
+  al_milk: "leche", al_gluten: "gluten", al_eggs: "huevos", al_nuts: "frutos de cáscara", al_peanuts: "cacahuetes", al_soybeans: "soja", al_fish: "pescado", al_crustaceans: "crustáceos", al_molluscs: "moluscos", al_celery: "apio", al_mustard: "mostaza", al_sesame_seeds: "sésamo", al_sulphur_dioxide_and_sulphites: "sulfitos", al_lupin: "altramuces"
+});
 })();

@@ -115,8 +115,10 @@ function tabbar() {
 /* Onglet Scanner */
 function tabScan(body) {
   const big = h("button", { type: "button", className: "bigscan" });
-  big.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 9v6M10 9v6M14 9v6M17 9v6"/></svg>';
-  big.append(h("b", { textContent: t("f_scanBtn") }), h("span", { textContent: t("f_scanSub") }));
+  if (root.SoveeMascot) big.insertAdjacentHTML("afterbegin", root.SoveeMascot.img(72));
+  const col = h("div", { className: "bigcol" }); col.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 9v6M10 9v6M14 9v6M17 9v6"/></svg>';
+  col.append(h("b", { textContent: t("f_scanBtn") }), h("span", { textContent: t("f_scanSub") }));
+  big.append(col);
   const msg = h("div", { className: "msg" });
   big.onclick = () => scanBarcode(code => openProduct(code), m => { msg.className = "msg err"; msg.textContent = m; });
   const codeIn = h("input", { id: "f-code", className: "mono", inputMode: "numeric", placeholder: "3017620422003", autocomplete: "off" });
@@ -289,6 +291,90 @@ function noInfo(p) {
   return sc0(p) == null && [n.kcal, n.fat, n.sat, n.sug, n.salt, n.prot, n.fib].every(v => v == null) && !p.ing && !(p.add || []).length && !p.ns && !p.nova;
 }
 function sc0(p) { return R.scoreFood(p, F.weights).score; }
+function fmtN(v) { return String(v).replace(".", ","); }
+/* Additifs du produit, décrits par la base d'additifs (avec repli sur les E-numéros lus dans les ingrédients) */
+function foodAdditives(p) {
+  const A = root.AdditiveDB;
+  let codes = (p.add || []).map(c => String(c).replace(/^[a-z]{2}:/, "").toLowerCase());
+  if (!codes.length && p.ing && p.ing !== "x") codes = (p.ing.match(/\bE ?\d{3,4}[a-f]?\b/gi) || []).map(c => c.replace(/\s/g, "").toLowerCase());
+  codes = [...new Set(codes)];
+  const kept = codes.filter(k => { const b = k.replace(/(i{1,3}|iv|vi?)$/, ""); return b === k || !codes.includes(b); });
+  const order = { risk: 0, limited: 1, unk: 2, safe: 3 };
+  return kept.map(k => {
+    const d = A && A.get(k);
+    if (d) return Object.assign(d, { band: A.band(d.risk) });
+    const old = R.additivesOf({ add: [k] })[0] || {};
+    return { code: k.toUpperCase(), name: old.name || "", fn: "", fnName: "", fnDesc: "", risk: old.risk && old.risk !== "none" ? old.risk : "unk", tags: old.tags || [], why: old.note || t("ad_unkWhy"), src: [], band: A ? A.band(old.risk && old.risk !== "none" ? old.risk : "unk") : "unk" };
+  }).sort((a, b) => order[a.band] - order[b.band]);
+}
+const TAGS = { cancer1: ["☢️", "tg_cancer1"], cancer2A: ["☢️", "tg_cancer2A"], cancer2B: ["☢️", "tg_cancer2B"], cancerRisk: ["🎗️", "tg_cancerRisk"], ed: ["🧬", "tg_ed"], child: ["🧒", "tg_child"], allergen: ["🌼", "tg_allergen"],
+  gut: ["🦠", "tg_gut"], heart: ["❤️", "tg_heart"], diabetes: ["🩸", "tg_diabetes"], lax: ["🚽", "tg_lax"], nano: ["🔬", "tg_nano"], alu: ["🧪", "tg_alu"], repro: ["👶", "tg_repro"] };
+function tagLabel(k) { return TAGS[k] ? t(TAGS[k][1]) : ""; }
+function allergenName(x) { const k = "al_" + x.replace(/\s+/g, "_"); const v = t(k); return v && v !== k ? v : x; }
+const BAND = { risk: [LV.high, "ad_risk1"], limited: ["#f2c200", "ad_limited1"], safe: [LV.low, "ad_safe1"], unk: [LV.none, "ad_unk1"] };
+function additivesList(adds) {
+  openSheet(sh => {
+    sh.append(h("h2", { textContent: t("ad_listTitle") }));
+    const l = h("div", { className: "adlist" });
+    adds.forEach(a => {
+      const b = h("button", { type: "button", className: "adrow" },
+        h("div", { className: "admeta" }, h("b", { textContent: a.code }), h("span", { textContent: a.name || "—" }), a.fnName ? h("em", { className: "adfn", textContent: a.fnName }) : null),
+        h("div", { className: "adlv" }, h("span", { textContent: t(BAND[a.band][1]) }), dot(BAND[a.band][0])));
+      b.onclick = () => additiveSheet(a, adds); l.append(b);
+    });
+    sh.append(l, h("p", { className: "notice", textContent: t("ad_notice") }));
+    const close = h("button", { type: "button", className: "btn primary full", textContent: t("close") }); close.onclick = closeSheet; sh.append(close);
+  });
+}
+function additiveSheet(a, back) {
+  openSheet(sh => {
+    if (back) { const bb = h("button", { type: "button", className: "linkbtn", textContent: "← " + t("ad_listTitle") }); bb.onclick = () => additivesList(back); sh.append(bb); }
+    sh.append(h("div", { className: "adhead" }, h("div", {}, h("h2", { textContent: a.name || a.code }), h("div", { className: "rline" }, dot(BAND[a.band][0]), h("span", { textContent: t(BAND[a.band][1]) }))), h("span", { className: "adcode", textContent: a.code })));
+    if (a.fnName) sh.append(h("div", { className: "adfncard" }, h("b", { textContent: a.fnName }), h("span", { textContent: a.fnDesc })));
+    sh.append(h("h3", { className: "shh", textContent: t("ad_risks") }));
+    const tags = a.tags.filter(k => TAGS[k]);
+    if (tags.length) { const g = h("div", { className: "riskgrid" }); tags.forEach(k => g.append(h("div", { className: "risktile" }, h("span", { className: "rico", textContent: TAGS[k][0] }), h("small", { textContent: t(TAGS[k][1]) })))); sh.append(g); }
+    else sh.append(h("p", { className: "sub", textContent: a.band === "unk" ? t("ad_unkRisk") : t("ad_noRisk") }));
+    sh.append(h("p", { className: "why2", textContent: a.why }));
+    if (a.src.length) { sh.append(h("h3", { className: "shh", textContent: t("b_sciSources") })); sh.append(h("div", { className: "reflist" }, ...a.src.map(r => h("div", { textContent: r })))); }
+    const more = h("button", { type: "button", className: "btn full", style: "margin-top:14px", textContent: "🔎 " + t("ad_more") });
+    more.onclick = () => ctx.openUrl("https://www.google.com/search?q=" + encodeURIComponent(a.code + " " + (a.name || "") + " additif EFSA"));
+    const close = h("button", { type: "button", className: "btn primary full", style: "margin-top:8px", textContent: t("close") }); close.onclick = closeSheet;
+    sh.append(more, close);
+  });
+}
+/* Alternatives mieux notées (même rayon) */
+function findAlternatives(p, max) {
+  const type = p.type === "beauty" ? "beauty" : "food";
+  const mine = scoreOf(p);
+  return D.loadIndex(type).then(idx => {
+    // On reste dans la catégorie la plus précise du produit (ex. biscuits fourrés), puis la catégorie juste au-dessus si besoin
+    const cats = p.cats || [], c1 = cats[cats.length - 1], c2 = cats[cats.length - 2];
+    const sameGroup = r => type === "beauty" || !p.g2 || !r.g || r.g === p.g2;
+    let pool = c1 ? idx.filter(r => r.c !== p.code && r.k === c1) : [];
+    if (pool.length < 4 && c1) pool = idx.filter(r => r.c !== p.code && sameGroup(r) && (r.k === c1 || r.k2 === c1 || (c2 && (r.k === c2 || r.k2 === c2))));
+    if (pool.length < 2 && type === "beauty" && p.rg) pool = idx.filter(r => r.c !== p.code && r.r === p.rg);
+    return pool.map(r => ({ r, s: type === "beauty" ? r.s : R.scoreFood(D.rowAsProduct(r), F.weights).score }))
+      .filter(x => x.s != null && (mine == null || x.s > mine) && (type === "beauty" || dietOk(x.r))).sort((a, b) => b.s - a.s).slice(0, max)
+      .map(({ r, s }) => ({ p: { code: r.c, name: r.n, brand: r.b, type }, s }));
+  });
+}
+function altCarousel(body, p) {
+  const wrap = h("div", {}); body.append(wrap);
+  findAlternatives(p, 10).then(list => {
+    if (!list.length) return;
+    const all = h("button", { type: "button", className: "linkbtn", textContent: t("b_seeAll") }); all.onclick = () => { productTab = "alt"; ctx.render(); window.scrollTo(0, 0); };
+    wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_alt") }), all));
+    const row = h("div", { className: "altrow" });
+    list.forEach(({ p: q, s }) => {
+      const c = h("button", { type: "button", className: "altcard" }, productImage(h("div", { className: "altimg" }), q),
+        h("b", { textContent: q.name || q.code }), h("small", { textContent: q.brand || "" }),
+        h("span", { className: "altsc" }, dot(COLORS[R.scoreClass(s)]), h("span", { textContent: s + "/100 · " + scoreLabel(s) })));
+      c.onclick = () => openProduct(q.code, q); row.append(c);
+    });
+    wrap.append(row);
+  }).catch(() => {});
+}
 function healthTab(body, p, sc) {
   if (noInfo(p)) {
     body.append(h("div", { className: "unknownbox" }, h("b", { textContent: "❔ " + t("u_noInfoTitle") }), h("p", { textContent: t("u_noInfoTxt") })));
@@ -300,39 +386,71 @@ function healthTab(body, p, sc) {
     return;
   }
   const bad = [], good = [];
-  const adds = R.additivesOf(p);
-  const hi = adds.filter(a => a.risk === "high"), mo = adds.filter(a => a.risk === "mod");
-  const addList = adds.map(a => h("div", { className: "addrow" }, dot(a.risk === "high" ? LV.high : a.risk === "mod" ? LV.mid : LV.low), h("span", { textContent: a.name ? a.code + " · " + a.name : a.code }), a.note ? h("small", { textContent: a.note }) : null));
-  if (hi.length || mo.length) bad.push(item("⚗️", t("n_additives"), hi.length ? t("n_addRisk") : t("n_addMod"), String(adds.length), hi.length ? LV.high : LV.mid, addList));
-  else if (p.ing || adds.length) good.push(item("⚗️", adds.length ? t("n_additives") : t("n_noAdditive"), t("n_addOk"), adds.length ? String(adds.length) : null, LV.low, addList.length ? addList : null));
-  const nut = [["sug", "🍬", t("n_sugar"), "g"], ["sat", "💧", t("n_sat"), "g"], ["fat", "🫒", t("n_fat"), "g"], ["salt", "🧂", t("n_salt"), "g"]];
+  const adds = foodAdditives(p);
+  const cnt = { risk: 0, limited: 0, safe: 0, unk: 0 }; adds.forEach(a => cnt[a.band]++);
+  // Additifs : compte par niveau + bouton vers la liste
+  if (adds.length || p.ing) {
+    const box = h("div", { className: "addbox" });
+    [["risk", LV.high, "ad_risk"], ["limited", "#f2c200", "ad_limited"], ["safe", LV.low, "ad_safe"], ["unk", LV.none, "ad_unk"]].forEach(([k, c, key]) => {
+      if (k === "unk" && !cnt.unk) return;
+      const n = h("span", { className: "addn", textContent: cnt[k] }); n.style.background = c;
+      box.append(h("div", { className: "addcnt" }, n, h("span", { textContent: t(key) })));
+    });
+    if (adds.length) { const show = h("button", { type: "button", className: "btn addshow", textContent: "ⓘ " + t("ad_show") }); show.onclick = e => { e.stopPropagation(); additivesList(adds); }; box.append(show); }
+    const color = cnt.risk ? LV.high : cnt.limited ? "#f2c200" : LV.low;
+    const sub = !adds.length ? t("n_addOk") : cnt.risk ? t("ad_hasRisk") : cnt.limited ? t("ad_hasLimited") : t("n_addOk");
+    const row = item("⚗️", adds.length ? t("n_additives") : t("n_noAdditive"), sub, adds.length ? String(adds.length) : null, color, adds.length ? [box] : null);
+    if (adds.length) { row.querySelector(".ndet").hidden = !(cnt.risk || cnt.limited); }
+    (cnt.risk || cnt.limited ? bad : good).push(row);
+  }
+  // Doses pour 100 g / 100 ml
+  const u100 = R.isDrink(p) ? "ml" : "g";
+  const lim = R.NUTRI_LIMITS[R.isDrink(p) ? "drink" : "food"];
+  const scale = (lo, hi, unit) => [h("small", { textContent: t("n_scale", fmtN(lo) + unit, fmtN(hi) + unit, u100) })];
+  const nut = [["sug", "🍬", t("n_sugar"), "g"], ["sat", "💧", t("n_sat"), "g"], ["salt", "🧂", t("n_salt"), "g"], ["fat", "🫒", t("n_fat"), "g"]];
   for (const [k, ic, label, u] of nut) {
     const lv = R.level(p, k); if (!lv) continue;
-    const row = item(ic, label, t("lv_" + lv), fmt(p.n[k], u), LV[lv]);
-    (lv === "high" || lv === "mid" ? bad : good).push(row);
+    const row = item(ic, label, t("lvn_" + k + "_" + lv), fmt(p.n[k], u), LV[lv], scale(lim[k][0], lim[k][1], " g"));
+    (lv === "high" || (lv === "mid" && k !== "fat") ? bad : good).push(row);
   }
-  const kl = R.kcalLevel(p); if (kl) (kl === "high" ? bad : good).push(item("🔥", t("n_kcal"), t("lv_" + kl), fmt(p.n.kcal, " kcal"), LV[kl]));
-  const pl = R.protLevel(p); if (pl && pl !== "none") good.push(item("🐟", t("n_prot"), t("q_" + pl), fmt(p.n.prot, "g"), LV[pl]));
-  const fl = R.fibLevel(p); if (fl && fl !== "none") good.push(item("🌾", t("n_fib"), t("q_" + fl), fmt(p.n.fib, "g"), LV[fl]));
+  const kl = R.kcalLevel(p);
+  if (kl) (kl === "high" ? bad : good).push(item("🔥", t("n_kcal"), t("lvn_kcal_" + kl), fmt(p.n.kcal, " kcal"), LV[kl], scale(R.isDrink(p) ? 20 : 160, R.isDrink(p) ? 60 : 400, " kcal")));
+  const pl = R.protLevel(p); if (pl) good.push(item("🐟", t("n_prot"), t("q_" + pl), fmt(p.n.prot, "g"), pl === "none" ? LV.none : LV[pl], [h("small", { textContent: t("n_protScale", u100) })]));
+  const fl = R.fibLevel(p); if (fl) good.push(item("🌾", t("n_fib"), t("q_" + fl), fmt(p.n.fib, "g"), fl === "none" ? LV.none : LV[fl], [h("small", { textContent: t("n_fibScale", u100) })]));
+  const fv = p.n && p.n.fv;
+  if (fv != null) { const fvl = fv >= 80 ? "good" : fv >= 40 ? "ok" : "none"; good.push(item("🍎", t("n_fv"), t("fv_" + fvl), Math.round(fv) + " %", fvl === "none" ? LV.none : LV[fvl], [h("small", { textContent: t("n_fvScale") })])); }
   if (p.nova === 4) bad.push(item("🏭", t("n_nova"), t("n_nova4"), "NOVA 4", LV.high)); else if (p.nova === 1) good.push(item("🌿", t("n_nova"), t("n_nova1"), "NOVA 1", LV.low));
   if (R.isOrganic(p)) good.push(item("🍃", t("n_bio"), t("n_bioSub"), null, LV.low));
-  body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_defects") }), h("span", { textContent: t("f_per100") })));
+  const per = t("f_per100x", u100);
+  body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_defects") }), h("span", { textContent: per })));
   if (bad.length) body.append(h("div", { className: "nlist" }, ...bad)); else body.append(h("p", { className: "sub", textContent: t("f_noDefect") }));
-  body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_qualities") })));
+  body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_qualities") }), h("span", { textContent: per })));
   if (good.length) body.append(h("div", { className: "nlist" }, ...good)); else body.append(h("p", { className: "sub", textContent: "—" }));
 
-  // Substances préoccupantes
-  const conc = adds.filter(a => a.tags.some(x => /^cancer|^ed$/.test(x)));
-  body.append(h("h3", { className: "sect", textContent: t("f_concern") }));
-  if (conc.length) {
-    const tagTxt = x => ({ cancer1: t("tg_cancer1"), cancer2A: t("tg_cancer2A"), cancer2B: t("tg_cancer2B"), ed: t("tg_ed") })[x];
-    body.append(h("div", { className: "nlist" }, ...conc.map(a => item(a.tags.includes("ed") ? "🧬" : "☢️", a.code + " · " + a.name, a.tags.map(tagTxt).filter(Boolean).join(" · "), null, a.risk === "high" ? LV.high : LV.mid, a.note ? [h("small", { textContent: a.note })] : null))));
-  } else body.append(h("p", { className: "sub", textContent: t("f_noConcern") }));
+  // À surveiller : tout ce qui mérite attention (additifs, ingrédients, transformation, allergènes)
+  const A = root.AdditiveDB;
+  const watch = [];
+  adds.filter(a => a.band === "risk" || a.band === "limited").forEach(a => watch.push({ ic: a.band === "risk" ? "⚠️" : "🟡", title: a.code + " · " + a.name, sub: (a.tags.map(tagLabel).filter(Boolean).join(" · ") || a.fnName), lv: a.band === "risk" ? LV.high : "#f2c200", open: () => additiveSheet(a) }));
+  if (A && p.ing && p.ing !== "x") A.watchIngredients(p.ing).forEach(w => watch.push({ ic: "🔎", title: w.title, sub: t("rl_" + (w.lv === "high" || w.lv === "mod" ? "mod" : "low")), lv: w.lv === "high" ? LV.high : w.lv === "mod" ? LV.mid : "#f2c200", det: w }));
+  if (A && p.nova === 4) watch.push({ ic: "🏭", title: A.UPF.title, sub: t("rl_mod"), lv: LV.mid, det: A.UPF });
+  const allg = (p.all || []).map(x => x.replace(/^[a-z]{2}:/, "").replace(/-/g, " "));
+  const trc = (p.tr || []).map(x => x.replace(/^[a-z]{2}:/, "").replace(/-/g, " "));
+  if (allg.length) watch.push({ ic: "🌼", title: t("w_allergens"), sub: allg.map(allergenName).join(", "), lv: LV.mid });
+  if (trc.length) watch.push({ ic: "🌼", title: t("w_traces"), sub: trc.map(allergenName).join(", "), lv: "#f2c200" });
+  body.append(h("h3", { className: "sect", textContent: t("f_watch") }));
+  if (watch.length) {
+    const l = h("div", { className: "nlist" });
+    watch.forEach(w => {
+      if (w.open) { const r = item(w.ic, w.title, w.sub, null, w.lv); r.classList.add("open"); r.onclick = w.open; l.append(r); }
+      else l.append(item(w.ic, w.title, w.sub, null, w.lv, w.det ? [h("small", { textContent: w.det.why }), ...w.det.src.map(s => h("small", { className: "srcline", textContent: "📚 " + s }))] : null));
+    });
+    body.append(l);
+  } else body.append(h("p", { className: "sub", textContent: p.ing ? t("f_noWatch") : t("f_noWatchUnk") }));
 
   // Grossesse / bébés
   const verdictRow = (title, r) => {
     if (!p.ing) return item(title === "preg" ? "🤰" : "👶", title === "preg" ? t("f_preg") : t("f_baby"), t("u_unkVerdict"), null, LV.none);
-    const c = r.v === "ok" ? LV.low : r.v === "mod" ? LV.mid : LV.high;
+    const c = r.v === "ok" ? LV.low : LV.high;
     return item(title === "preg" ? "🤰" : "👶", title === "preg" ? t("f_preg") : t("f_baby"), t("vd_" + r.v), null, c, r.why.map(w => h("small", { textContent: "• " + w })));
   };
   if (F.pregnancy || F.baby) {
@@ -353,9 +471,10 @@ function healthTab(body, p, sc) {
   body.append(h("h3", { className: "sect", textContent: t("f_scoreDetail") }));
   const det = h("div", { className: "nlist" });
   sc.parts.forEach(([k, v, w]) => det.append(item("•", t("w_" + k), t("f_weight", w), Math.round(v * 100) + "%", v >= .7 ? LV.low : v >= .4 ? LV.mid : LV.high)));
-  if (hi.length && F.weights.additives) det.append(h("p", { className: "sub", textContent: t("f_capped") }));
+  if (adds.some(a => a.risk === "high") && F.weights.additives) det.append(h("p", { className: "sub", textContent: t("f_capped") }));
   body.append(det);
   if (p.ing) { const ing = h("details", { className: "ing" }, h("summary", { textContent: t("f_ingredients") }), h("p", { textContent: p.ing })); body.append(ing); }
+  altCarousel(body, p);
   body.append(h("p", { className: "notice", textContent: t("f_source") }));
 }
 function envTab(body, p) {
@@ -504,16 +623,10 @@ function inciEditor(code, name, initial, askName, brand) {
 function altTab(body, p) {
   body.append(h("p", { className: "sub", textContent: t("a_help") }));
   const list = h("div", { className: "plist" }); body.append(list);
-  const type = p.type === "beauty" ? "beauty" : "food";
   const mine = scoreOf(p);
-  D.loadIndex(type).then(idx => {
-    const lastCat = (p.cats || [])[p.cats.length - 1];
-    let pool = idx.filter(r => r.c !== p.code && ((p.rg && r.r === p.rg) || (lastCat && r.k === lastCat)));
-    if (pool.length < 5 && p.g2) pool = idx.filter(r => r.c !== p.code && r.g === p.g2);
-    const rows = pool.map(r => ({ r, s: type === "beauty" ? r.s : R.scoreFood(D.rowAsProduct(r), F.weights).score }))
-      .filter(x => x.s != null && (mine == null || x.s > mine) && (type === "beauty" || dietOk(x.r))).sort((a, b) => b.s - a.s).slice(0, 15);
+  findAlternatives(p, 15).then(rows => {
     if (!rows.length) { list.append(h("p", { className: "sub", textContent: mine != null && mine >= 75 ? t("a_already") : t("a_none") })); return; }
-    rows.forEach(({ r, s }) => list.append(productRow({ code: r.c, name: r.n, brand: r.b, type }, { score: s })));
+    rows.forEach(({ p: q, s }) => list.append(productRow(q, { score: s })));
   });
 }
 
@@ -565,6 +678,18 @@ ctx.foodOptions = box => {
   const clear = h("button", { type: "button", className: "btn danger full", textContent: t("f_clearHistory") });
   clear.onclick = () => { history = []; lsSet(HIST_KEY, history); toast(t("f_cleared")); };
   box.append(h("div", { className: "optcard" }, h("h3", { textContent: t("f_history") }), clear));
+};
+/* Bouton « Scanner » flottant, en bas à gauche, sur toutes les pages */
+ctx.scanFab = view => {
+  if (view === "food" && (tab === "scan" || !F.setup)) return;
+  const wrapEl = document.getElementById("fabwrap");
+  const up = (document.querySelector(".tabbar") ? 1 : 0) + (wrapEl.querySelector(".fab") ? 2 : 0);
+  const b = h("button", { type: "button", className: "scanfab" + (up & 1 ? " up" : "") + (up & 2 ? " up2" : "") });
+  const heart = root.SoveeMascot ? root.SoveeMascot.img(28) : "";
+  b.innerHTML = heart + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 9v6M10 9v6M14 9v6M17 9v6"/></svg>';
+  b.append(h("span", { textContent: t("f_scan") }));
+  b.onclick = () => scanBarcode(code => openProduct(code), m => toast(m));
+  wrapEl.append(b);
 };
 ctx.foodBack = () => {
   if (ctx.view() === "product") { go("food"); return true; }

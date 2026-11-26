@@ -12,8 +12,8 @@ android {
         minSdk = 26
         targetSdk = 35
         // À augmenter à chaque nouvelle version, pour pouvoir installer la mise à jour par-dessus.
-        versionCode = 8
-        versionName = "4.3"
+        versionCode = 9
+        versionName = "4.4"
     }
 
     signingConfigs {
