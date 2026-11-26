@@ -138,11 +138,11 @@ function rowAsProduct(r) {
 /* ---------- Base hors ligne (fichiers dans l'APK) ---------- */
 const cache = { shard: {}, index: {} };
 async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return r.json(); }
-// La base est compactée (tools/pack-db.mjs) : fichiers .json.gz + dictionnaire d'étiquettes tags.json.gz
+// La base est compactée (tools/pack-db.mjs) : fichiers .jgz (JSON gzip) + dictionnaire d'étiquettes tags.json.gz
 async function getData(url) {
   if (typeof DecompressionStream === "function") {
     try {
-      const r = await fetch(url + ".gz");
+      const r = await fetch(url.replace(/\.json$/, ".jgz")); // extension .jgz : sinon l'outil Android décompresse les .gz
       if (r.ok) return await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).json();
     } catch (e) {}
   }

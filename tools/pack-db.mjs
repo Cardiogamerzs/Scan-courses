@@ -15,7 +15,7 @@ for (const type of ["food", "beauty"]) {
   if (!fs.existsSync(path.join(dir, "index.json"))) continue;
   const dict = [], ids = new Map();
   const id = v => { if (!ids.has(v)) { ids.set(v, dict.length); dict.push(v); } return ids.get(v); };
-  const gz = (name, obj) => { fs.writeFileSync(path.join(dir, name + ".gz"), zlib.gzipSync(JSON.stringify(obj), { level: 9 })); };
+  const gz = (name, obj) => { fs.writeFileSync(path.join(dir, name), zlib.gzipSync(JSON.stringify(obj), { level: 9 })); };
   let before = 0, after = 0;
   for (let i = 0; i < 100; i++) {
     const f = path.join(dir, String(i).padStart(2, "0") + ".json");
@@ -27,7 +27,7 @@ for (const type of ["food", "beauty"]) {
       for (const k of SHARD_TAGS) if (Array.isArray(q[k])) q[k] = q[k].map(id);
       out[code] = q;
     }
-    gz(path.basename(f), out); fs.rmSync(f);
+    gz(path.basename(f).replace(/\.json$/, ".jgz"), out); fs.rmSync(f);
   }
   const fi = path.join(dir, "index.json"); before += fs.statSync(fi).size;
   const rows = JSON.parse(fs.readFileSync(fi, "utf8")).map(r => {
@@ -36,8 +36,8 @@ for (const type of ["food", "beauty"]) {
     for (const k of INDEX_LIST) if (Array.isArray(q[k]) && q[k].length) q[k] = q[k].map(id); else delete q[k];
     return q;
   });
-  gz("index.json", rows); fs.rmSync(fi);
-  gz("tags.json", dict);
+  gz("index.jgz", rows); fs.rmSync(fi);
+  gz("tags.jgz", dict);
   for (const f of fs.readdirSync(dir)) after += fs.statSync(path.join(dir, f)).size;
   console.log(type, ": base compactée", Math.round(before / 1e6), "Mo →", Math.round(after / 1e6 * 10) / 10, "Mo (", dict.length, "étiquettes )");
 }
