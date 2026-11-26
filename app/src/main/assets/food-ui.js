@@ -221,7 +221,9 @@ function dietOk(r) {
 }
 
 /* ---------- Fiche produit ---------- */
+let productFrom = "food";
 async function openProduct(code, hint) {
+  if (ctx.view() !== "product") productFrom = ctx.view() === "home" || !VIEWS[ctx.view()] ? "food" : ctx.view();
   current = { loading: true, code, name: hint && hint.name };
   productTab = "health"; go("product");
   const p = await D.findProduct(code);
@@ -286,6 +288,7 @@ VIEWS.product = rootEl => {
     const pb = h("button", { type: "button", className: "btn full pricebtn", textContent: "🏷️ " + t("pr_compare") });
     pb.onclick = () => ctx.openPrices(p.code, p.name); wrap.append(h("div", { className: "row", style: "margin-top:10px" }, pb));
   }
+  for (const hk of ctx.productHooks || []) { try { hk(wrap, p, sc); } catch (e) { console.error(e); } }
   // Alertes régimes
   if (p.type !== "beauty" && F.diets.length) {
     const d = R.dietChecks(p), bad = F.diets.filter(k => d[k] === "no");
@@ -319,6 +322,7 @@ function petView(wrap, p) {
   if (rows.length) { body.append(h("h3", { className: "sect", textContent: t("pet_analysis") })); body.append(h("div", { className: "nlist" }, ...rows.map(([i, l, v]) => item(i, l, "", fmt(v, " %"), null)))); }
   if (p.ing) body.append(h("details", { className: "ing" }, h("summary", { textContent: t("f_ingredients") }), h("p", { textContent: p.ing })));
   body.append(h("p", { className: "notice", textContent: t("pet_notice") }));
+  for (const hk of ctx.productHooks || []) { try { hk(body, p, sc); } catch (e) { console.error(e); } }
 }
 function item(icon, title, sub, value, color, open) {
   const row = h("div", { className: "nrow" }, h("span", { className: "nico", textContent: icon }), h("div", { className: "nmeta" }, h("b", { textContent: title }), h("small", { textContent: sub })),
@@ -773,6 +777,11 @@ ctx.openProduct = code => openProduct(code);
 ctx.scanBarcode = scanBarcode;
 ctx.foodHistory = () => history;
 ctx.foodScore = scoreOf;
+ctx.productRow = productRow;
+ctx.ring = ring;
+ctx.scoreColor = s => COLORS[R.scoreClass(s)];
+ctx.scoreLabel = scoreLabel;
+ctx.productImage = productImage;
 ctx.foodOptions = box => {
   box.append(prefsEditor());
   const clear = h("button", { type: "button", className: "btn danger full", textContent: t("f_clearHistory") });
@@ -792,7 +801,7 @@ ctx.scanFab = view => {
   wrapEl.append(b);
 };
 ctx.foodBack = () => {
-  if (ctx.view() === "product") { go("food"); return true; }
+  if (ctx.view() === "product") { go(productFrom || "food"); return true; }
   if (ctx.view() === "food" && tab === "rank" && rankGroupId) { rankGroupId = null; go("food"); return true; }
   if (ctx.view() === "food" && tab !== "scan") { tab = "scan"; go("food"); return true; }
   return false;

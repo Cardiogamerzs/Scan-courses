@@ -6,11 +6,16 @@
     <!-- Module Promos : magasins dans un rayon de 20 km (position approximative suffit) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Rappels des dates de péremption -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Ouvrir l'appareil photo et les liens des QR codes -->
     <queries>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -44,6 +49,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -51,5 +57,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver android:name=".ReminderReceiver" android:exported="false" />
+
+        <receiver android:name=".ScanWidget" android:exported="true" android:label="Sovée : scanner">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_scan_info" />
+        </receiver>
     </application>
 </manifest>

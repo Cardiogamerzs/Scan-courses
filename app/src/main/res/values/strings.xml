@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Sovée</string>
+    <string name="widget_scan">Scanner</string>
+    <string name="widget_desc">Scanne un produit en un clic</string>
 </resources>

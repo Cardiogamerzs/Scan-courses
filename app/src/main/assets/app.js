@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "4.5";
+const APP_VERSION = "4.6";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -89,8 +89,11 @@ function resolveTheme(name) {
   }
   return THEMES[name];
 }
+function darkWanted() { const d = settings.dark || "off"; return d === "on" || (d === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); }
 function applyTheme(name) {
-  const th = resolveTheme(name), r = document.documentElement.style;
+  let th = resolveTheme(name); const r = document.documentElement.style;
+  if (!th.dark && darkWanted()) th = Object.assign({}, THEMES.night, { wall: THEMES.night.bg, bar: THEMES.night.bg });
+  document.documentElement.classList.toggle("darkui", !!th.dark);
   r.setProperty("--bg", th.bg); r.setProperty("--surface", th.surface); r.setProperty("--fg", th.fg);
   r.setProperty("--muted", th.muted); r.setProperty("--line", th.line); r.setProperty("--wall", th.wall || th.bg);
   r.setProperty("--accent", th.dark ? "#ff6b4a" : "#ff5a36"); r.setProperty("--accent-fg", th.dark ? "#14161f" : "#ffffff");
@@ -173,7 +176,9 @@ VIEWS.home = root => {
   const lang = h("button", { type: "button", className: "langbtn", ariaLabel: t("language") }, h("span", { textContent: cur[1] }), h("b", { textContent: cur[2] }));
   lang.onclick = () => { const i = LANGS.indexOf(cur); settings.lang = LANGS[(i + 1) % LANGS.length][0]; saveSettings(); render(); toast(t("langNow")); };
   const opt = header("", { options: "home" }).lastChild;
-  bar.append(logo, h("div", { className: "sp" }), lang, opt);
+  bar.append(logo, h("div", { className: "sp" }));
+  for (const hk of ctx.homeBar) { const el = hk(); if (el) bar.append(el); }
+  bar.append(lang, opt);
   // La mascotte et sa bulle
   const tips = T().tips || I18N.fr.tips;
   const hero = h("section", { className: "hero" });
@@ -205,7 +210,8 @@ VIEWS.home = root => {
     mk("food", "linear-gradient(135deg,#1f9d55,#0f766e)", t("modFood"), t("modFoodSub"), null)
   );
   for (const m of ctx.modules) { ICONS[m.key] = m.icon; mods.append(mk(m.key, m.color, m.title(), m.sub(), m.badge ? m.badge() : null)); }
-  wrap.append(bar, hero, today, h("h2", { className: "homeh", textContent: t("hello") }), mods, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
+  const extra = h("div", { className: "homeextra" }); for (const hk of ctx.homeHooks) { try { hk(extra); } catch (e) { console.error(e); } }
+  wrap.append(bar, hero, today, extra, h("h2", { className: "homeh", textContent: t("hello") }), mods, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
   root.append(wrap);
 };
 
@@ -580,6 +586,7 @@ VIEWS.options = root => {
       storesBtn,
       h("div", { className: "acrow premium" }, h("span", { className: "acico", textContent: "💖" }), h("div", { className: "acmeta" }, h("s", { textContent: t("acc_premium") }), h("small", { textContent: t("acc_free") }))),
       h("p", { className: "sub", style: "margin:8px 0 0", textContent: t("acc_help") })));
+    for (const hk of ctx.homeOptions) { try { hk(opts); } catch (e) { console.error(e); } }
     opts.append(themePicker(t("background"), settings.theme, v => { settings.theme = v; saveSettings(); applyTheme(v); render(); }, false));
   } else {
     opts.append(themePicker(t("moduleBg"), settings.modTheme[optScope] || "home", v => { settings.modTheme[optScope] = v; saveSettings(); applyTheme(themeFor(optScope)); render(); }, true));
@@ -724,7 +731,7 @@ async function copyText(text) {
 }
 function themePickerFor(scope) { return themePicker(t("moduleBg"), settings.modTheme[scope] || "home", v => { settings.modTheme[scope] = v; saveSettings(); applyTheme(themeFor(scope)); render(); }, true); }
 const ctx = { h, t, T, settings, saveSettings, go, header, openSheet, closeSheet, VIEWS, fab, lsGet, lsSet, toast, NATIVE, pickPhoto, decodeImage, view: () => view, render,
-  modules: [], backHooks: [], viewModule: {}, storesSheet, openUrl, copyText, codeSVG, loadScript, bright, deleteZone, themePickerFor, imgSrc };
+  modules: [], backHooks: [], productHooks: [], homeHooks: [], homeOptions: [], homeBar: [], applyTheme: n => applyTheme(n), themeFor: v => themeFor(v), viewModule: {}, storesSheet, openUrl, copyText, codeSVG, loadScript, bright, deleteZone, themePickerFor, imgSrc };
 if (window.FoodUI) FoodUI.install(ctx);
 for (const ext of window.SC_EXT || []) ext(ctx);
 applyTheme(settings.theme);

@@ -11,7 +11,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.pm.ApplicationInfo
+import android.speech.RecognizerIntent
+import android.util.Log
+import android.webkit.ConsoleMessage
 import android.view.View
 import android.view.WindowManager
 import android.webkit.GeolocationPermissions
@@ -86,6 +93,35 @@ class MainActivity : AppCompatActivity() {
     private val ocrGallery = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) runOcr(uri) else sendOcr(null, "cancel")
     }
+    // Sauvegarde et restauration (fichier JSON choisi par l'utilisateur)
+    private var saveText: String? = null
+    private val saveDoc = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val txt = saveText; saveText = null
+        var ok = false
+        if (uri != null && txt != null) ok = try { contentResolver.openOutputStream(uri)?.use { it.write(txt.toByteArray()) }; true } catch (e: Exception) { false }
+        js("window.onFileSaved && window.onFileSaved(" + ok + ")")
+    }
+    private val openDoc = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val txt = if (uri == null) null else try { contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } } catch (e: Exception) { null }
+        js("window.onFileText && window.onFileText(" + (if (txt == null) "null" else JSONObject.quote(txt)) + ")")
+    }
+    // Recherche vocale (reconnaissance vocale du téléphone)
+    private val voiceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        val txt = if (res.resultCode == Activity.RESULT_OK) res.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull() else null
+        js("window.onVoice && window.onVoice(" + (if (txt == null) "null" else JSONObject.quote(txt)) + ")")
+    }
+    private val askNotif = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    // Action demandée par le widget (scanner)
+    private var pendingAction: String? = null
+    private var pageReady = false
+    private fun takeAction(intent: Intent?) {
+        if (intent?.action == ScanWidget.ACTION_SCAN) pendingAction = "scan"
+        if (intent?.getStringExtra("open") != null) pendingAction = intent.getStringExtra("open")
+        val a = pendingAction
+        if (pageReady && a != null) { pendingAction = null; js("window.onWidget && window.onWidget(" + JSONObject.quote(a) + ")") }
+    }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); takeAction(intent) }
+
     private fun sendOcr(text: String?, err: String?) {
         js("window.onOcr && window.onOcr(" + (if (text == null) "null" else JSONObject.quote(text)) + "," + (if (err == null) "null" else JSONObject.quote(err)) + ")")
     }
@@ -136,6 +172,8 @@ class MainActivity : AppCompatActivity() {
             .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
 
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
+        takeAction(intent)
         web = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -148,6 +186,11 @@ class MainActivity : AppCompatActivity() {
                     request: WebResourceRequest
                 ): WebResourceResponse? = loader.shouldInterceptRequest(request.url)
 
+                override fun onPageFinished(view: WebView, url: String) {
+                    pageReady = true
+                    takeAction(null)
+                }
+
                 // Les liens vers l'extérieur s'ouvrent dans le navigateur (ou l'appli concernée)
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     val url = request.url
@@ -157,6 +200,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(m: ConsoleMessage): Boolean {
+                    Log.d("SoveeJS", m.messageLevel().name + " " + m.message() + " @" + m.sourceId().substringAfterLast('/') + ":" + m.lineNumber())
+                    return true
+                }
                 override fun onShowFileChooser(
                     view: WebView,
                     callback: ValueCallback<Array<Uri>>,
@@ -225,7 +272,7 @@ class MainActivity : AppCompatActivity() {
         if (out.exists()) { sendCut(code, "cut/$safe.jpg"); return }
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 12000; c.readTimeout = 15000
-        c.setRequestProperty("User-Agent", "Sovee-Android/4.5")
+        c.setRequestProperty("User-Agent", "Sovee-Android/4.6")
         val src = c.inputStream.use { BitmapFactory.decodeStream(it) } ?: throw Exception("image")
         c.disconnect()
         val res = Tasks.await(segmenter.process(InputImage.fromBitmap(src, 0)))
@@ -349,7 +396,7 @@ class MainActivity : AppCompatActivity() {
          *  La réponse revient par window.onHttp(id, statut, texte). */
         @JavascriptInterface
         fun httpGet(id: String, url: String) {
-            val allowed = setOf("prices.openfoodfacts.org", "world.openfoodfacts.org", "world.openbeautyfacts.org")
+            val allowed = setOf("prices.openfoodfacts.org", "world.openfoodfacts.org", "world.openbeautyfacts.org", "world.openpetfoodfacts.org", "data.economie.gouv.fr")
             val host = try { URL(url).host } catch (e: Exception) { "" }
             if (!url.startsWith("https://") || host !in allowed) {
                 js("window.onHttp && window.onHttp(" + JSONObject.quote(id) + ",0,\"\")"); return
@@ -360,7 +407,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val c = URL(url).openConnection() as HttpURLConnection
                     c.connectTimeout = 12000; c.readTimeout = 15000
-                    c.setRequestProperty("User-Agent", "ScanCourses-Android/3.0")
+                    c.setRequestProperty("User-Agent", "Sovee-Android/4.6")
                     code = c.responseCode
                     body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
                     c.disconnect()
@@ -377,6 +424,56 @@ class MainActivity : AppCompatActivity() {
             val host = try { URL(url).host } catch (e: Exception) { "" }
             if (!url.startsWith("https://") || host !in setOf("images.openfoodfacts.org", "images.openbeautyfacts.org", "static.openfoodfacts.org", "static.openbeautyfacts.org")) { sendCut(code, null); return }
             cutPool.execute { try { makeCutout(code, url) } catch (e: Exception) { sendCut(code, null) } }
+        }
+
+        /** Partage un texte (SMS, WhatsApp, e-mail…) par le menu de partage d'Android. */
+        @JavascriptInterface
+        fun share(text: String, subject: String) {
+            runOnUiThread {
+                val i = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text); putExtra(Intent.EXTRA_SUBJECT, subject) }
+                try { startActivity(Intent.createChooser(i, subject)) } catch (e: Exception) { }
+            }
+        }
+
+        /** Enregistre un fichier (sauvegarde) là où l'utilisateur le choisit ; résultat par window.onFileSaved(ok). */
+        @JavascriptInterface
+        fun saveFile(name: String, text: String) {
+            runOnUiThread { saveText = text; try { saveDoc.launch(name) } catch (e: Exception) { saveText = null; js("window.onFileSaved && window.onFileSaved(false)") } }
+        }
+
+        /** Ouvre un fichier choisi par l'utilisateur (restauration) ; texte par window.onFileText(texte). */
+        @JavascriptInterface
+        fun openFile() {
+            runOnUiThread { try { openDoc.launch(arrayOf("application/json", "text/plain", "application/octet-stream", "*/*")) } catch (e: Exception) { js("window.onFileText && window.onFileText(null)") } }
+        }
+
+        /** Reconnaissance vocale ; résultat par window.onVoice(texte). */
+        @JavascriptInterface
+        fun voice(lang: String) {
+            runOnUiThread {
+                val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Sovée t'écoute…")
+                }
+                try { voiceLauncher.launch(i) } catch (e: Exception) { js("window.onVoice && window.onVoice(null, 'none')") }
+            }
+        }
+
+        /** Programme une notification (dates de péremption) à l'heure donnée (ms). */
+        @JavascriptInterface
+        fun remind(id: Int, at: Long, title: String, text: String) {
+            if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                runOnUiThread { try { askNotif.launch(Manifest.permission.POST_NOTIFICATIONS) } catch (e: Exception) { } }
+            }
+            val am = getSystemService(ALARM_SERVICE) as AlarmManager
+            am.set(AlarmManager.RTC_WAKEUP, at, ReminderReceiver.pending(this@MainActivity, id, title, text))
+        }
+
+        @JavascriptInterface
+        fun unremind(id: Int) {
+            val am = getSystemService(ALARM_SERVICE) as AlarmManager
+            am.cancel(ReminderReceiver.pending(this@MainActivity, id, "", ""))
         }
 
         /** Copie un texte dans le presse-papiers. */

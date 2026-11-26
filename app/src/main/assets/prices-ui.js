@@ -158,6 +158,8 @@ async function openPrices(code, name) {
   if (ctx.view() === "pricecmp") ctx.render();
 }
 ctx.openPrices = openPrices;
+ctx.getJSON = getJSON;
+ctx.pricesFor = pricesFor;
 ctx.viewModule.pricecmp = "prices";
 VIEWS.pricecmp = root => {
   const c = cmp, wrap = h("div", { className: "wrap" }); root.append(wrap);

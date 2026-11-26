@@ -61,6 +61,7 @@ function shopView(body) {
     lsSet("sc-shop-week", menu.week); if (ctx.track) ctx.track("menu2shop"); toast(t("k_added")); ctx.render();
   };
   body.append(h("div", { className: "row", style: "margin-top:10px" }, scan, fill));
+  for (const hk of ctx.shopHooks || []) { try { hk(body); } catch (e) { console.error(e); } }
   if (!shop.length) { body.append(h("div", { className: "soon", style: "margin-top:14px" }, h("p", { textContent: t("k_shopEmpty"), style: "margin:0;color:var(--muted)" }))); return; }
   for (const [a, ico, label] of K.AISLES) {
     const items = shop.filter(x => x.aisle === a); if (!items.length) continue;
@@ -483,4 +484,6 @@ ctx.backHooks.push(() => {
   return false;
 });
 ctx.addRecipeToShop = addRecipeToShop;
+ctx.openRecipe = (id, from) => openRecipe(id, from);
+ctx.shopApi = { get: () => shop, set: v => { shop = v; saveShop(); }, save: () => saveShop() };
 });
