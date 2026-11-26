@@ -537,3 +537,6 @@ button.nrow{width:100%;border:0;background:none;font:inherit;color:inherit;text-
 .darkui .medalert{background:#1e2142;border-color:#3b3f7a;color:#c7d2fe}
 .darkui .sold .stchip.mine{background:#14361f;border-color:#1f6b3a;color:#bbf7d0}
 button.chip{font:inherit;font-size:13px;font-weight:600;padding:6px 11px;border-radius:99px;cursor:pointer;color:var(--fg)}
+/* Petits écrans (320 px) : le verdict ne doit pas être coupé */
+.verdict>div{min-width:0}.verdict b{overflow-wrap:anywhere}
+@media (max-width:360px){.phero{gap:10px;padding:12px}.verdict{gap:8px}.verdict b{font-size:16px}.pbig{width:96px;height:96px}}
