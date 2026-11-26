@@ -35,7 +35,7 @@ jobs:
         run: python3 tools/fetch-off-csv.py offdata 50000 8000 15000
 
       - name: Construire la base hors ligne de l'appli
-        run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl && node tools/diag-cosmetics.mjs
+        run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl && node tools/diag-cosmetics.mjs && node tools/pack-db.mjs
 
       - uses: actions/setup-java@v4
         with:

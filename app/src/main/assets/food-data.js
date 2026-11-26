@@ -138,15 +138,45 @@ function rowAsProduct(r) {
 /* ---------- Base hors ligne (fichiers dans l'APK) ---------- */
 const cache = { shard: {}, index: {} };
 async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return r.json(); }
+// La base est compactée (tools/pack-db.mjs) : fichiers .json.gz + dictionnaire d'étiquettes tags.json.gz
+async function getData(url) {
+  if (typeof DecompressionStream === "function") {
+    try {
+      const r = await fetch(url + ".gz");
+      if (r.ok) return await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).json();
+    } catch (e) {}
+  }
+  return getJSON(url); // base non compactée (développement)
+}
+const SHARD_TAGS = ["cats", "add", "all", "tr", "ana", "lab", "ori", "pack", "st"];
+function loadTags(type) {
+  if (!cache.tags) cache.tags = {};
+  if (!cache.tags[type]) cache.tags[type] = getData("data/" + type + "/tags.json").catch(() => null);
+  return cache.tags[type];
+}
+const untag = (dict, v) => typeof v === "number" ? dict[v] : v;
 function shardOf(code) { return code.slice(-2).padStart(2, "0"); }
 async function localProduct(code, type) {
   const key = type + shardOf(code);
-  try { if (!cache.shard[key]) cache.shard[key] = await getJSON("data/" + type + "/" + shardOf(code) + ".json"); } catch (e) { cache.shard[key] = {}; }
+  try { if (!cache.shard[key]) cache.shard[key] = await getData("data/" + type + "/" + shardOf(code) + ".json"); } catch (e) { cache.shard[key] = {}; }
   const p = cache.shard[key][code];
-  return p ? { ...p, type } : null;
+  if (!p) return null;
+  const q = { ...p, code, type };
+  const dict = await loadTags(type);
+  if (dict) for (const k of SHARD_TAGS) if (Array.isArray(q[k])) q[k] = q[k].map(v => untag(dict, v));
+  return q;
 }
 async function loadIndex(type) {
-  if (!cache.index[type]) { try { cache.index[type] = await getJSON("data/" + type + "/index.json"); } catch (e) { cache.index[type] = []; } }
+  if (!cache.index[type]) {
+    try {
+      const [rows, dict] = await Promise.all([getData("data/" + type + "/index.json"), loadTags(type)]);
+      if (dict) for (const r of rows) {
+        for (const k of ["k", "k2", "g"]) r[k] = r[k] == null ? "" : untag(dict, r[k]);
+        for (const k of ["a", "an", "al", "st"]) r[k] = (r[k] || []).map(v => untag(dict, v));
+      }
+      cache.index[type] = rows;
+    } catch (e) { cache.index[type] = []; }
+  }
   return cache.index[type];
 }
 
