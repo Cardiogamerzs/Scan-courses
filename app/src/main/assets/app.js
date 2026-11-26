@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "4.1";
+const APP_VERSION = "4.2";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -145,7 +145,7 @@ VIEWS.home = root => {
   const wrap = h("div", { className: "wrap home" });
   // Barre du haut : logo, langue, options
   const bar = h("div", { className: "homebar" });
-  const logo = h("div", { className: "logo" }); logo.innerHTML = SoveeMascot.svg("happy", 30); logo.append(h("b", { textContent: t("appName") }));
+  const logo = h("div", { className: "logo" }); logo.innerHTML = SoveeMascot.svg("happy", 36); logo.append(h("b", { textContent: t("appName") }));
   const cur = LANGS.find(l => l[0] === settings.lang) || LANGS[0];
   const lang = h("button", { type: "button", className: "langbtn", ariaLabel: t("language") }, h("span", { textContent: cur[1] }), h("b", { textContent: cur[2] }));
   lang.onclick = () => { const i = LANGS.indexOf(cur); settings.lang = LANGS[(i + 1) % LANGS.length][0]; saveSettings(); render(); toast(t("langNow")); };
@@ -154,12 +154,12 @@ VIEWS.home = root => {
   // La mascotte et sa bulle
   const tips = T().tips || I18N.fr.tips;
   const hero = h("section", { className: "hero" });
-  const pet = h("button", { type: "button", className: "pet", ariaLabel: t("petLabel") }); pet.innerHTML = SoveeMascot.svg(petMood, 112);
+  const pet = h("button", { type: "button", className: "pet", ariaLabel: t("petLabel") }); pet.innerHTML = SoveeMascot.svg(petMood, 124);
   const tipEl = h("span", { textContent: tips[tipIdx % tips.length] });
   const bubble = h("div", { className: "bubble" }, h("b", { textContent: greeting() }), tipEl);
   pet.onclick = () => {
-    tipIdx++; petMood = ["wink", "love", "wow", "happy"][tipIdx % 4];
-    pet.innerHTML = SoveeMascot.svg(petMood, 112); pet.classList.remove("hop"); void pet.offsetWidth; pet.classList.add("hop");
+    tipIdx++; const anim = ["hop", "wiggle", "spin", "squash"][tipIdx % 4];
+    pet.classList.remove("hop", "wiggle", "spin", "squash"); void pet.offsetWidth; pet.classList.add(anim);
     tipEl.textContent = tips[tipIdx % tips.length];
   };
   hero.append(pet, bubble);

@@ -379,3 +379,11 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,
 .row.col{flex-direction:column}
 .userinci{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:6px 0 4px;font-size:13px}
 .sheet textarea{width:100%;box-sizing:border-box;font:inherit;font-size:14px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:12px;resize:vertical}
+.pet .mascot{user-select:none;-webkit-user-drag:none}
+.pet.wiggle .mascot{animation:wiggle .7s ease-in-out}
+.pet.spin .mascot{animation:spin .8s cubic-bezier(.4,1.4,.5,1)}
+.pet.squash .mascot{animation:squash .6s ease-out}
+@keyframes wiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-7deg)}80%{transform:rotate(4deg)}}
+@keyframes spin{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+@keyframes squash{0%{transform:scale(1)}30%{transform:scale(1.15,.85)}60%{transform:scale(.92,1.1) translateY(-8px)}100%{transform:scale(1)}}
+.pet .mascot{filter:drop-shadow(0 8px 10px rgba(0,0,0,.18))}

@@ -8,7 +8,13 @@ const INK = "#3a1020";
 function eye(x, y) { return '<ellipse cx="' + x + '" cy="' + y + '" rx="5.2" ry="6.6" fill="' + INK + '"/><circle cx="' + (x + 1.8) + '" cy="' + (y - 2.4) + '" r="1.9" fill="#fff"/>'; }
 function closedEye(x, y) { return '<path d="M' + (x - 6) + ' ' + y + 'q6 6 12 0" fill="none" stroke="' + INK + '" stroke-width="3.2" stroke-linecap="round"/>'; }
 function loveEye(x, y) { return '<path transform="translate(' + (x - 7) + ' ' + (y - 7) + ') scale(.12)" d="' + HEART + '" fill="#e8335a" stroke="#fff" stroke-width="10"/>'; }
-function svg(mood, size) {
+// Mascotte dessinée (image fournie par Erwan) ; l'ancien cœur SVG reste en secours
+function img(size) {
+  const s = size || 120;
+  return '<img class="mascot" src="img/' + (s <= 48 ? "mascot-sm" : "mascot") + '.webp" width="' + s + '" height="' + s + '" alt="" draggable="false">';
+}
+function svg(mood, size) { return img(size); }
+function heartSvg(mood, size) {
   const id = "sv" + (++uid);
   const s = size || 120;
   let eyes;
@@ -25,5 +31,5 @@ function svg(mood, size) {
     '<ellipse cx="31" cy="63" rx="7.5" ry="4.6" fill="#ffb3c1" opacity=".9"/><ellipse cx="89" cy="63" rx="7.5" ry="4.6" fill="#ffb3c1" opacity=".9"/>' +
     eyes + mouth + '</svg>';
 }
-window.SoveeMascot = { svg, HEART };
+window.SoveeMascot = { svg, img, heartSvg, HEART };
 })();
