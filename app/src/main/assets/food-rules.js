@@ -226,7 +226,61 @@ function scoreFood(p, w) {
   let score = Math.round(100 * parts.reduce((s, x) => s + x[1] * x[2], 0) / parts.reduce((s, x) => s + x[2], 0));
   // Un additif à risque élevé plafonne la note à 49 (si les additifs comptent pour l'utilisateur)
   if (w.additives && ad.high) score = Math.min(score, 49);
-  return { score, parts };
+  const health = healthAdjust(p);
+  if (health.length) score = Math.max(0, Math.min(score, ...health.filter(x => x.cap != null).map(x => x.cap), 100) - health.reduce((s, x) => s + (x.pen || 0), 0));
+  return { score, parts, health };
+}
+/* ---------- Profil santé (options) : sel, sucre, graisses saturées, allergies ----------
+   Repères : feux tricolores de l'étiquetage (FSA), recommandations HAS / Société française de cardiologie
+   (moins de 5 g de sel par jour en cas d'hypertension), ANSES. */
+let HEALTH = null;
+function setHealth(h) { HEALTH = h && (h.salt || h.diabetes || h.chol || (h.allergens || []).length) ? h : null; }
+function healthAdjust(p) {
+  if (!HEALTH) return [];
+  const out = [];
+  const pen = { mid: 8, high: 22 };
+  if (HEALTH.salt) { const l = level(p, "salt"); if (pen[l]) out.push({ key: "salt", lv: l, pen: pen[l] }); }
+  if (HEALTH.diabetes) { const l = level(p, "sug"); if (pen[l]) out.push({ key: "sugar", lv: l, pen: pen[l] }); }
+  if (HEALTH.chol) {
+    const l = level(p, "sat"); if (pen[l]) out.push({ key: "sat", lv: l, pen: pen[l] });
+    if (/partiellement hydrog|partially hydrogenated/i.test(p.ing || "")) out.push({ key: "trans", lv: "high", pen: 15 });
+  }
+  const mine = new Set((HEALTH.allergens || []).map(a => "en:" + a));
+  const has = (p.all || []).filter(a => mine.has(a));
+  if (has.length) out.push({ key: "allergen", lv: "high", cap: 0, list: has.map(a => a.slice(3)) });
+  const tr = (p.tr || []).filter(a => mine.has(a) && !has.includes(a));
+  if (tr.length) out.push({ key: "traces", lv: "mid", pen: 0, list: tr.map(a => a.slice(3)) });
+  return out;
+}
+/* ---------- Nourriture pour chats et chiens ----------
+   Repères généraux (FEDIAF, besoins du chat carnivore strict, avis vétérinaires courants) : pas un avis vétérinaire. */
+function scorePet(p) {
+  const x = (p.ing || "").toLowerCase(), good = [], bad = [];
+  if (!x.trim()) return { score: null, good, bad };
+  let s = 55;
+  const first = x.split(/[,;]/).slice(0, 3).join(",");
+  const ANIMAL = /(viande|poulet|dinde|b(o|œ)euf|agneau|canard|saumon|thon|poisson|lapin|porc|volaille|gibier|caille|truite|sardine|chicken|turkey|beef|lamb|duck|salmon|tuna|fish|rabbit|meat)/;
+  const VAGUE = /sous[- ]produits|by-products|viandes et sous|produits de boulangerie|substances minérales/;
+  const f1 = x.split(/[,;]/)[0];
+  if (ANIMAL.test(f1) && !VAGUE.test(f1)) { s += 15; good.push(["🥩", "Viande ou poisson en premier ingrédient"]); }
+  else if (VAGUE.test(first)) { s -= 6; bad.push(["❓", "Viandes et sous-produits non précisés"]); }
+  else { s -= 10; bad.push(["🌾", "Le premier ingrédient n'est pas une viande ni un poisson"]); }
+  const pct = [...x.matchAll(/(\d+(?:[.,]\d+)?)\s?%\s?(?:de\s)?(?:viande|poulet|dinde|b(?:o|œ)euf|agneau|canard|saumon|poisson|lapin|chicken|meat|fish|salmon)/g)].map(m => parseFloat(m[1].replace(",", ".")));
+  for (const m of x.matchAll(/(?:viande|poulet|dinde|b(?:o|œ)euf|agneau|canard|saumon|poisson|lapin|chicken|meat|fish|salmon)[^,(]{0,25}\((\d+(?:[.,]\d+)?)\s?%/g)) pct.push(parseFloat(m[1].replace(",", ".")));
+  if (pct.length && Math.max(...pct) >= 40) { s += 10; good.push(["💪", "Au moins " + Math.round(Math.max(...pct)) + " % de viande ou poisson"]); }
+  if (/(c[ée]r[ée]ales|bl[ée]|ma[iï]s|riz|cereals|wheat|maize|corn|rice)/.test(first)) { s -= p.animal === "cat" ? 12 : 6; bad.push(["🌽", "Céréales dans les premiers ingrédients" + (p.animal === "cat" ? " (le chat est carnivore strict)" : "")]); }
+  if (/sucre|caramel|sugar|sirop|m[ée]lasse/.test(x)) { s -= 10; bad.push(["🍬", "Sucres ajoutés"]); }
+  if (/colorant|colourant|\be1[0-9]{2}\b/.test(x)) { s -= 8; bad.push(["🎨", "Colorants (inutiles pour l'animal)"]); }
+  if (/\be32[014]\b|bha|bht|[ée]thoxyquine|ethoxyquin/.test(x)) { s -= 12; bad.push(["⚠️", "Antioxydants de synthèse controversés (BHA, BHT, éthoxyquine)"]); }
+  if (/extraits? de prot[ée]ines v[ée]g[ée]tales|vegetable protein extract/.test(x)) { s -= 5; bad.push(["🌱", "Protéines végétales ajoutées pour gonfler le taux de protéines"]); }
+  if (p.animal === "cat" && /taurine/.test(x)) { s += 3; good.push(["✅", "Taurine ajoutée (indispensable au chat)"]); }
+  const pr = p.n && p.n.prot;
+  if (pr != null) {
+    const dry = pr >= 18;
+    if (dry ? pr >= 32 : pr >= 9) { s += 8; good.push(["🍗", "Riche en protéines (" + pr + " %)"]); }
+    else if (dry ? pr < 26 : pr < 7) { s -= 6; bad.push(["🍗", "Peu de protéines (" + pr + " %)"]); }
+  }
+  return { score: Math.max(0, Math.min(100, Math.round(s))), good, bad };
 }
 function scoreClass(s) { return s == null ? "unk" : s >= 75 ? "excellent" : s >= 50 ? "good" : s >= 25 ? "poor" : "bad"; }
 
@@ -288,6 +342,6 @@ function scoreCosmetic(p) {
   return { score: Math.max(0, Math.round(s)), found: f };
 }
 
-root.FoodRules = { ADDITIVES, NUTRI_LIMITS, isDrink, level, kcalLevel, protLevel, fibLevel, additivesOf, pregnancy, baby, DIETS, dietChecks,
+root.FoodRules = { scorePet, setHealth, healthAdjust, ADDITIVES, NUTRI_LIMITS, isDrink, level, kcalLevel, protLevel, fibLevel, additivesOf, pregnancy, baby, DIETS, dietChecks,
   scoreFood, scoreClass, DEFAULT_WEIGHTS, PRESETS, isOrganic, nutritionSub, additivesSub, scoreCosmetic, cosmeticIngredients };
 })(typeof window !== "undefined" ? window : globalThis);

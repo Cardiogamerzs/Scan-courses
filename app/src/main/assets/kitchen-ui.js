@@ -36,9 +36,31 @@ function shopText() {
 function shopView(body) {
   const add = h("input", { id: "shop-add", placeholder: t("k_addItem"), autocomplete: "off" });
   const addBtn = h("button", { type: "button", className: "btn primary", textContent: "+" });
-  const doAdd = () => { const v = add.value.trim(); if (!v) return; shop.push({ id: "s" + Date.now().toString(36), name: v, aisle: "xx", q: 0, from: [] }); saveShop(); add.value = ""; ctx.render(); setTimeout(() => { const el = document.getElementById("shop-add"); if (el) el.focus(); }, 30); };
+  const doAdd = () => { const v = add.value.trim(); if (!v) return; shop.push({ id: "s" + Date.now().toString(36), name: v, aisle: K.aisleOfText ? K.aisleOfText(v) : "xx", q: 0, from: [] }); saveShop(); add.value = ""; ctx.render(); setTimeout(() => { const el = document.getElementById("shop-add"); if (el) el.focus(); }, 30); };
   addBtn.onclick = doAdd; add.onkeydown = e => { if (e.key === "Enter") doAdd(); };
   body.append(h("div", { className: "inrow" }, add, addBtn));
+  // Liste intelligente : scanner ce qui manque, remplir avec les recettes de la semaine
+  const scan = h("button", { type: "button", className: "btn primary", textContent: "📷 " + t("sh_scan") });
+  scan.onclick = () => {
+    if (!ctx.scanBarcode) return;
+    ctx.scanBarcode(async code => {
+      toast(t("f_loading"));
+      const p = await window.FoodData.findProduct(code).catch(() => null);
+      if (!p) { toast(t("sh_unknown")); return; }
+      const sc = ctx.foodScore ? ctx.foodScore(p) : null;
+      shop.push({ id: "s" + Date.now().toString(36), name: p.name || code, brand: p.brand || "", code: p.code, score: sc, aisle: K.aisleOfCats ? K.aisleOfCats(p.cats, p.type) : "xx", q: 0, from: [] });
+      saveShop(); toast("✓ " + (p.name || code)); ctx.render();
+    }, m => toast(m));
+  };
+  const fill = h("button", { type: "button", className: "btn", textContent: "🍽️ " + t("sh_fromMenu") });
+  fill.onclick = () => {
+    const menu = lsGet("sc-menu", null);
+    if (!menu || !menu.days) { toast(t("sh_noMenu")); return; }
+    if (lsGet("sc-shop-week", "") === menu.week) { toast(t("sh_already")); return; }
+    menu.days.forEach(d => ["lunch", "dinner", "starter"].forEach(sl => { const r = K.RECIPES.find(x => x.id === d[sl]); if (r) addRecipeToShop(r, S.menuServings); }));
+    lsSet("sc-shop-week", menu.week); if (ctx.track) ctx.track("menu2shop"); toast(t("k_added")); ctx.render();
+  };
+  body.append(h("div", { className: "row", style: "margin-top:10px" }, scan, fill));
   if (!shop.length) { body.append(h("div", { className: "soon", style: "margin-top:14px" }, h("p", { textContent: t("k_shopEmpty"), style: "margin:0;color:var(--muted)" }))); return; }
   for (const [a, ico, label] of K.AISLES) {
     const items = shop.filter(x => x.aisle === a); if (!items.length) continue;
@@ -46,8 +68,10 @@ function shopView(body) {
     const list = h("div", { className: "nlist" });
     items.forEach(x => {
       const cb = h("input", { type: "checkbox", checked: !!x.done });
-      cb.onchange = () => { x.done = cb.checked; saveShop(); row.classList.toggle("done", x.done); };
-      const row = h("label", { className: "shoprow" + (x.done ? " done" : "") }, cb, h("div", { className: "nmeta" }, h("b", { textContent: x.name }), x.from.length ? h("small", { textContent: x.from.join(", ") }) : null),
+      cb.onchange = () => { x.done = cb.checked; saveShop(); row.classList.toggle("done", x.done); if (x.done && ctx.track) ctx.track("shopcheck"); };
+      const scDot = x.score != null ? h("span", { className: "shopsc", textContent: x.score + "/100" }) : null;
+      if (scDot) scDot.style.background = x.score >= 75 ? "#1f9d55" : x.score >= 50 ? "#7cc242" : x.score >= 25 ? "#e8900c" : "#d93a2b";
+      const row = h("label", { className: "shoprow" + (x.done ? " done" : "") }, cb, h("div", { className: "nmeta" }, h("b", { textContent: x.name }), x.from.length ? h("small", { textContent: x.from.join(", ") }) : x.brand ? h("small", { textContent: x.brand }) : null), scDot,
         x.ing ? h("span", { className: "nval", textContent: K.qtyText(x.ing, x.q, 1) }) : null);
       list.append(row);
     });
@@ -142,7 +166,7 @@ function ideasView(body) {
 
 /* Fiche recette */
 let curRecipe = null, curServ = null, recipeFrom = "recipes";
-function openRecipe(id, from) { curRecipe = K.RECIPES.find(r => r.id === id); curServ = curRecipe ? curRecipe.s : 2; recipeFrom = from || (ctx.view() === "balance" ? "balance" : "recipes"); go("recipe"); }
+function openRecipe(id, from) { curRecipe = K.RECIPES.find(r => r.id === id); if (curRecipe && ctx.track) ctx.track("recipe", { veg: K.recipeDiet(curRecipe).vege }); curServ = curRecipe ? curRecipe.s : 2; recipeFrom = from || (ctx.view() === "balance" ? "balance" : "recipes"); go("recipe"); }
 ctx.viewModule.recipe = "recipes";
 VIEWS.recipe = root => {
   const r = curRecipe; const wrap = h("div", { className: "wrap" }); root.append(wrap);
@@ -297,6 +321,7 @@ function menuView(body) {
   const shopBtn = h("button", { type: "button", className: "btn primary", textContent: "🛒 " + t("k_menuToShop", S.menuServings) });
   shopBtn.onclick = () => {
     menu.days.forEach(d => ["lunch", "dinner", "starter"].forEach(s => { const r = K.RECIPES.find(x => x.id === d[s]); if (r) addRecipeToShop(r, S.menuServings); }));
+    lsSet("sc-shop-week", menu.week); if (ctx.track) ctx.track("menu2shop");
     toast(t("k_added")); shopBtn.textContent = "✓ " + t("k_added");
   };
   const again = h("button", { type: "button", className: "btn", textContent: "🎲 " + t("k_newMenu") });

@@ -198,6 +198,26 @@ async function onlineProduct(code) {
   } catch (e) {}
   return null;
 }
+/* Animaux : Open Pet Food Facts (croquettes, pâtées) */
+const PET_CATS = /en:(pet-food|cat-food|dog-food|cats-food|dogs-food)|chats?|chiens?/;
+function normPet(r) {
+  const nu = r.nutriments || {}, cats = r.categories_tags || [];
+  const text = (cats.join(" ") + " " + (r.product_name || "")).toLowerCase();
+  return {
+    type: "pet", code: String(r.code), name: (r.product_name_fr || r.product_name || "").trim(), brand: (r.brands || "").split(",")[0].trim(), qty: r.quantity || "",
+    cats, img: r.image_front_small_url || "", add: r.additives_tags || [],
+    ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || "").slice(0, 2000),
+    n: { prot: num(nu.proteins_100g), fat: num(nu.fat_100g), fib: num(nu.fiber_100g), ash: num(nu.ash_100g) },
+    animal: /cat|chat/.test(text) ? "cat" : /dog|chien/.test(text) ? "dog" : "pet"
+  };
+}
+async function petOnline(code) {
+  try {
+    const j = await withTimeout("https://world.openpetfoodfacts.org/api/v2/product/" + encodeURIComponent(code) + ".json", 8000);
+    if (j && j.status === 1 && j.product) return normPet({ ...j.product, code });
+  } catch (e) {}
+  return null;
+}
 async function onlineSearch(q) {
   try {
     const j = await withTimeout("https://world.openfoodfacts.org/cgi/search.pl?search_simple=1&json=1&page_size=30&search_terms=" + encodeURIComponent(q) + "&fields=" + FOOD_FIELDS, 10000);
@@ -269,6 +289,10 @@ async function findProduct(code) {
   // Cosmétique sans composition dans la base du téléphone : on regarde si la fiche en ligne en a une (autre langue)
   if (p && p.type === "beauty" && !p.inci && !p.fromFood) { const b = await beautyOnline(code); if (b && b.inci) { seenPut(b); p = b; } }
   if (p && looksFood(p)) { const f = await foodOnline(code); if (f && !looksNonFood(f)) { seenPut(f); p = f; } }
+  // Nourriture pour animaux
+  if (p && p.type === "food" && (p.cats || []).some(c => /pet-food|cat-food|dog-food/.test(c))) { const q = await petOnline(code); p = q || Object.assign(normPet({ code, product_name: p.name, brands: p.brand, categories_tags: p.cats, ingredients_text: p.ing, image_front_small_url: p.img }), {}); }
+  if (!p) { p = await petOnline(code); if (p) seenPut(p); }
+  if (p && p.type === "pet") return p;
   return finish(p, code);
 }
 function norm(s) { return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
@@ -285,5 +309,5 @@ async function searchLocal(q, limit = 60) {
   return out;
 }
 
-root.FoodData = { STORES, storeKeys, setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
+root.FoodData = { normPet, petOnline, STORES, storeKeys, setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
 })(typeof window !== "undefined" ? window : globalThis);

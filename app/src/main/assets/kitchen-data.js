@@ -6,7 +6,34 @@
 
 /* ---------- Rayons du magasin (ordre de la liste de courses) ---------- */
 const AISLES = [["fl", "🥦", "Fruits et légumes"], ["vi", "🥩", "Boucherie, volaille"], ["po", "🐟", "Poissonnerie"], ["cr", "🧀", "Crèmerie, œufs, fromages"],
-  ["bo", "🥖", "Boulangerie"], ["ep", "🥫", "Épicerie salée"], ["es", "🍫", "Épicerie sucrée"], ["co", "🧂", "Condiments, épices"], ["su", "❄️", "Surgelés"], ["xx", "🛒", "Autres"]];
+  ["bo", "🥖", "Boulangerie"], ["ep", "🥫", "Épicerie salée"], ["es", "🍫", "Épicerie sucrée"], ["co", "🧂", "Condiments, épices"], ["su", "❄️", "Surgelés"], ["bs", "🥤", "Boissons"], ["hy", "🧴", "Hygiène, beauté"], ["an", "🐾", "Animaux"], ["xx", "🛒", "Autres"]];
+/* Rayon d'un produit scanné (catégories Open Food Facts) ou d'un article tapé à la main */
+const AISLE_CATS = [
+  ["su", /frozen/], ["bs", /beverages|drinks|waters|juices|sodas|wines|beers|coffees|teas(?!-)/], ["po", /fishes|seafood|fish-|crustaceans|smoked-salmon|tunas/],
+  ["vi", /meats|poultry|hams|sausages|charcuterie|prepared-meats|chickens/], ["cr", /dairies|cheeses|yogurts|milks|butters|eggs|creams|desserts-lactes|fermented-milk/],
+  ["bo", /breads|viennoiseries|brioches|pastries/], ["es", /sweet|biscuits|chocolates|confectioneries|breakfast-cereals|jams|spreads|sugars|honeys|cakes|candies/],
+  ["co", /condiments|sauces|spices|oils|vinegars|salts|mustards|mayonnaises|ketchup/], ["fl", /fresh-fruits|fresh-vegetables|^en:fruits$|^en:vegetables$|apples|bananas|salads/],
+  ["ep", /pastas|rices|cereals|legumes|canned|soups|meals|snacks|crackers|chips|flours|plant-based/]
+];
+const AISLE_WORDS = [
+  ["su", /surgel|glace|frozen/], ["bs", /\b(eau|jus|soda|coca|vin|bi[eè]re|caf[eé]|th[eé]|sirop|lait d'amande|boisson)/], ["po", /poisson|saumon|thon|cabillaud|crevette|moule|sardine/],
+  ["vi", /viande|poulet|b(oe|œ)uf|porc|jambon|steak|saucisse|lardon|dinde|veau|agneau/], ["cr", /lait|yaourt|fromage|beurre|cr[eè]me|[oœ]ufs?\b|comt[eé]|emmental|mozzarella|skyr/],
+  ["bo", /pain|baguette|brioche|croissant|viennoiserie/], ["es", /chocolat|biscuit|g[aâ]teau|confiture|sucre|miel|c[eé]r[eé]ales|bonbon|nutella|compote/],
+  ["co", /huile|vinaigre|sel\b|poivre|[eé]pice|moutarde|mayonnaise|ketchup|sauce/], ["hy", /dentifrice|savon|shampo|gel douche|d[eé]odorant|papier toilette|couche|lessive|coton/],
+  ["an", /croquette|p[aâ]t[eé]e|liti[eè]re|chat|chien/], ["fl", /pomme|banane|tomate|salade|carotte|courgette|fruit|l[eé]gume|oignon|ail\b|citron|poire|orange|fraise|avocat/],
+  ["ep", /p[aâ]tes|riz|farine|conserve|lentille|pois|haricot|semoule|quinoa|soupe|chips/]
+];
+function aisleOfCats(cats, type) {
+  if (type === "beauty") return "hy"; if (type === "pet") return "an";
+  for (let i = (cats || []).length - 1; i >= 0; i--) for (const [a, re] of AISLE_CATS) if (re.test(cats[i])) return a;
+  return "ep";
+}
+function aisleOfText(txt) {
+  const x = String(txt || "").toLowerCase();
+  for (const [id, v] of Object.entries(ING)) { const n = v[0].toLowerCase().replace(/s$/, ""); if (n.length > 3 && x.includes(n)) return v[1]; }
+  for (const [a, re] of AISLE_WORDS) if (re.test(x)) return a;
+  return "xx";
+}
 
 /* ---------- Ingrédients ----------
    id: [nom, rayon, kcal, protéines, glucides, lipides, poids d'une pièce en g (0 = au poids, "ml" = liquide), particularités]
@@ -352,5 +379,5 @@ function qtyText(id, q, factor) {
 }
 function fmt(x) { return (Math.round(x * 10) / 10).toString().replace(".", ","); }
 
-root.KitchenData = { AISLES, ING, RECIPES, PLATE, PLATE_GROUPS, PNNS, PREGNANCY_TIPS, ingInfo, recipeNutrition, recipeDiet, qtyText };
+root.KitchenData = { aisleOfCats, aisleOfText, AISLES, ING, RECIPES, PLATE, PLATE_GROUPS, PNNS, PREGNANCY_TIPS, ingInfo, recipeNutrition, recipeDiet, qtyText };
 })(typeof window !== "undefined" ? window : globalThis);

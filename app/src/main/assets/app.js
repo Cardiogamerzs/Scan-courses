@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "4.4";
+const APP_VERSION = "4.5";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -568,12 +568,15 @@ VIEWS.options = root => {
     nm.onchange = () => { settings.name = nm.value.trim(); saveSettings(); toast(t("saved")); };
     const zip = h("input", { id: "o-zip", type: "text", inputMode: "numeric", value: settings.zip || "", placeholder: "83600", autocomplete: "postal-code", maxLength: 5 });
     zip.onchange = () => { const v = zip.value.replace(/\D/g, "").slice(0, 5); zip.value = v; settings.zip = v; saveSettings(); toast(t("saved")); };
+    const pet = h("input", { id: "o-pet", type: "text", value: settings.petName || "", placeholder: t("acc_petPh"), maxLength: 30 });
+    pet.onchange = () => { settings.petName = pet.value.trim(); saveSettings(); toast(t("saved")); };
     const storesBtn = h("button", { type: "button", className: "acrow" }, h("span", { className: "acico", textContent: "🏪" }),
       h("div", { className: "acmeta" }, h("b", { textContent: t("st_title") }), h("small", { textContent: storesSummary() })), h("span", { className: "chev", textContent: "›" }));
     storesBtn.onclick = () => storesSheet(() => render());
     opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("acc_title") }),
       h("label", { className: "flabel", htmlFor: "o-name", textContent: "👤 " + t("nameTitle") }), h("div", { className: "f", style: "margin:0 0 12px" }, nm),
       h("label", { className: "flabel", htmlFor: "o-zip", textContent: "🏠 " + t("acc_zip") }), h("div", { className: "f", style: "margin:0 0 12px" }, zip),
+      h("label", { className: "flabel", htmlFor: "o-pet", textContent: "🐾 " + t("acc_pet") }), h("div", { className: "f", style: "margin:0 0 12px" }, pet),
       storesBtn,
       h("div", { className: "acrow premium" }, h("span", { className: "acico", textContent: "💖" }), h("div", { className: "acmeta" }, h("s", { textContent: t("acc_premium") }), h("small", { textContent: t("acc_free") }))),
       h("p", { className: "sub", style: "margin:8px 0 0", textContent: t("acc_help") })));

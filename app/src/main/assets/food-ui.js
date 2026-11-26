@@ -7,6 +7,8 @@ root.FoodUI = { install(ctx) {
 const { h, t, T, settings, saveSettings, go, header, openSheet, closeSheet, VIEWS, fab, lsGet, lsSet, toast, NATIVE } = ctx;
 settings.food = Object.assign({ setup: false, preset: "balanced", weights: { ...R.DEFAULT_WEIGHTS }, diets: [], pregnancy: true, baby: true }, settings.food || {});
 const F = settings.food;
+F.health = Object.assign({ salt: false, diabetes: false, chol: false, allergens: [] }, F.health || {});
+R.setHealth(F.health);
 
 const HIST_KEY = "sc-food-history";
 let history = lsGet(HIST_KEY, []);
@@ -23,7 +25,7 @@ let rankKind = "food", rankGroupId = null;
 
 /* ---------- Petits composants ---------- */
 const COLORS = { excellent: "#1f9d55", good: "#7cc242", poor: "#e8900c", bad: "#d93a2b", unk: "#9aa0ad" };
-function scoreOf(p) { return p.type === "beauty" ? R.scoreCosmetic(p).score : R.scoreFood(p, F.weights).score; }
+function scoreOf(p) { return p.type === "beauty" ? R.scoreCosmetic(p).score : p.type === "pet" ? R.scorePet(p).score : R.scoreFood(p, F.weights).score; }
 function scoreLabel(s) { return t("sc_" + R.scoreClass(s)); }
 function ring(score, size = 84) {
   const cls = R.scoreClass(score), c = COLORS[cls], r = size / 2 - 6, len = 2 * Math.PI * r, pct = score == null ? 0 : score / 100;
@@ -224,7 +226,8 @@ async function openProduct(code, hint) {
   productTab = "health"; go("product");
   const p = await D.findProduct(code);
   if (!p) { current = { missing: true, code }; if (ctx.view() === "product") ctx.render(); return; }
-  current = p; addHistory(p, scoreOf(p));
+  current = p; const sc = scoreOf(p); addHistory(p, sc);
+  if (ctx.track) ctx.track("scan", { code: p.code, type: p.type, score: sc, risky: p.type === "food" && foodAdditives(p).some(a => a.band === "risk") });
   if (ctx.view() === "product") ctx.render();
 }
 VIEWS.product = rootEl => {
@@ -239,6 +242,7 @@ VIEWS.product = rootEl => {
     wrap.append(add);
     return;
   }
+  if (p.type === "pet") return petView(wrap, p);
   const sc = p.type === "beauty" ? R.scoreCosmetic(p) : R.scoreFood(p, F.weights);
   wrap.append(h("header", {}, header(p.name || p.code, { back: true })));
   const hero = h("div", { className: "phero" });
@@ -262,6 +266,22 @@ VIEWS.product = rootEl => {
   }
   hero.append(img, info); wrap.append(hero);
   if (p.type !== "beauty") { const sa = soldAt(p); if (sa) wrap.append(sa); }
+  // Profil santé : ce qui ne te convient pas dans ce produit
+  if (p.type !== "beauty" && sc.health && sc.health.length) {
+    const box = h("div", { className: "healthalert" }, h("b", { textContent: "❤️ " + t("hp_forYou") }));
+    sc.health.forEach(x => box.append(h("span", { textContent: x.key === "allergen" || x.key === "traces" ? t("hp_" + x.key, x.list.map(allergenName).join(", ")) : t("hp_" + x.key + "_" + x.lv) })));
+    wrap.append(box);
+  }
+  // Mode grossesse / mode bébé : le verdict tout en haut
+  if (p.type !== "beauty" && (F.pregMode || F.babyMode)) {
+    [["pregMode", "🤰", "f_preg", R.pregnancy], ["babyMode", "👶", "f_baby", R.baby]].forEach(([k, ic, lab, fn]) => {
+      if (!F[k]) return;
+      const r = p.ing ? fn(p) : null, ok = r && r.v === "ok";
+      const b = h("div", { className: "modebanner " + (!r ? "unk" : ok ? "ok" : "no") }, h("b", { textContent: ic + " " + t(lab) + " : " + (!r ? t("u_unkVerdict") : t("vd_" + r.v)) }));
+      if (r && r.why.length) b.append(h("small", { textContent: r.why.join(" · ") }));
+      wrap.append(b);
+    });
+  }
   if (p.type !== "beauty" && ctx.openPrices) {
     const pb = h("button", { type: "button", className: "btn full pricebtn", textContent: "🏷️ " + t("pr_compare") });
     pb.onclick = () => ctx.openPrices(p.code, p.name); wrap.append(h("div", { className: "row", style: "margin-top:10px" }, pb));
@@ -280,6 +300,26 @@ VIEWS.product = rootEl => {
   else ({ health: healthTab, env: envTab, alt: altTab })[productTab](body, p, sc);
 };
 
+/* Fiche nourriture pour animaux */
+function petView(wrap, p) {
+  const sc = R.scorePet(p), who = (settings.petName || "").trim();
+  wrap.append(h("header", {}, header(p.name || p.code, { back: true })));
+  const hero = h("div", { className: "phero" });
+  const img = productImage(h("div", { className: "pbig" }), p, true);
+  const ico = p.animal === "cat" ? "🐱" : p.animal === "dog" ? "🐶" : "🐾";
+  const info = h("div", { className: "pinfo" }, h("small", { textContent: [p.brand, p.qty].filter(Boolean).join(" · ") }),
+    h("div", { className: "verdict" }, ring(sc.score), h("div", {}, h("b", { textContent: sc.score == null ? t("pet_unknown") : scoreLabel(sc.score), style: "color:" + COLORS[R.scoreClass(sc.score)] }), h("small", { textContent: ico + " " + (who ? t("pet_for", who) : t("pet_" + p.animal)) }))));
+  hero.append(img, info); wrap.append(hero);
+  const body = h("div", { className: "pbody" }); wrap.append(body);
+  if (sc.score == null) { body.append(h("div", { className: "unknownbox" }, h("b", { textContent: "❔ " + t("pet_noIng") }), h("p", { textContent: t("pet_noIngTxt") }))); }
+  if (sc.bad.length) { body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_defects") }))); body.append(h("div", { className: "nlist" }, ...sc.bad.map(([i, txt]) => item(i, txt, "", null, LV.high)))); }
+  if (sc.good.length) { body.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_qualities") }))); body.append(h("div", { className: "nlist" }, ...sc.good.map(([i, txt]) => item(i, txt, "", null, LV.low)))); }
+  const n = p.n || {};
+  const rows = [["🍗", t("n_prot"), n.prot], ["🫒", t("n_fat"), n.fat], ["🌾", t("n_fib"), n.fib], ["🪨", t("pet_ash"), n.ash]].filter(r => r[2] != null);
+  if (rows.length) { body.append(h("h3", { className: "sect", textContent: t("pet_analysis") })); body.append(h("div", { className: "nlist" }, ...rows.map(([i, l, v]) => item(i, l, "", fmt(v, " %"), null)))); }
+  if (p.ing) body.append(h("details", { className: "ing" }, h("summary", { textContent: t("f_ingredients") }), h("p", { textContent: p.ing })));
+  body.append(h("p", { className: "notice", textContent: t("pet_notice") }));
+}
 function item(icon, title, sub, value, color, open) {
   const row = h("div", { className: "nrow" }, h("span", { className: "nico", textContent: icon }), h("div", { className: "nmeta" }, h("b", { textContent: title }), h("small", { textContent: sub })),
     value != null ? h("span", { className: "nval", textContent: value }) : null, color ? dot(color) : null);
@@ -403,7 +443,7 @@ function altCarousel(body, p) {
       const c = h("button", { type: "button", className: "altcard" }, productImage(h("div", { className: "altimg" }), q),
         h("b", { textContent: q.name || q.code }), h("small", { textContent: q.brand || "" }), at && at.length ? h("span", { className: "stbadge", textContent: "🏪 " + t("st_avail", storeName(at[0])) }) : null,
         h("span", { className: "altsc" }, dot(COLORS[R.scoreClass(s)]), h("span", { textContent: s + "/100 · " + scoreLabel(s) })));
-      c.onclick = () => openProduct(q.code, q); row.append(c);
+      c.onclick = () => { if (ctx.track) ctx.track("alt"); openProduct(q.code, q); }; row.append(c);
     });
     wrap.append(row);
   }).catch(() => {});
@@ -662,7 +702,7 @@ function altTab(body, p) {
   findAlternatives(p, 15).then(rows => {
     if (rows.pref && rows.pref.here) list.before(h("p", { className: "herebox", textContent: t("st_here", storeName(rows.pref.here)) }));
     if (!rows.length) { list.append(h("p", { className: "sub", textContent: mine != null && mine >= 75 ? t("a_already") : t("a_none") })); return; }
-    rows.forEach(({ p: q, s, at }) => list.append(productRow(q, { score: s, sub: at && at.length ? "🏪 " + at.map(storeName).join(", ") : "" })));
+    rows.forEach(({ p: q, s, at }) => { const r = productRow(q, { score: s, sub: at && at.length ? "🏪 " + at.map(storeName).join(", ") : "" }); r.addEventListener("click", () => ctx.track && ctx.track("alt"), true); list.append(r); });
   });
 }
 
@@ -706,9 +746,33 @@ function prefsEditor() {
   // Grossesse / bébé
   const tg = (key, label) => { const cb = h("input", { type: "checkbox", id: "o-" + key, checked: F[key] }); cb.onchange = () => { F[key] = cb.checked; saveSettings(); }; return h("label", { className: "toggle", htmlFor: "o-" + key }, h("span", { textContent: label }), cb); };
   box.append(h("div", { className: "optcard" }, h("h3", { textContent: t("ob_special") }), tg("pregnancy", t("ob_preg")), tg("baby", t("ob_baby"))));
+  box.append(healthEditor());
   return box;
 }
+/* Profil santé : la note s'adapte (sel, sucre, graisses saturées, allergies) */
+const ALLERGENS = ["gluten", "milk", "eggs", "nuts", "peanuts", "soybeans", "fish", "crustaceans", "molluscs", "celery", "mustard", "sesame-seeds", "sulphur-dioxide-and-sulphites", "lupin"];
+function healthEditor() {
+  const Hh = F.health, card = h("div", { className: "optcard" }, h("h3", { textContent: "❤️ " + t("hp_title") }), h("p", { className: "sub", textContent: t("hp_help") }));
+  const apply = () => { R.setHealth(Hh); saveSettings(); };
+  [["salt", "🧂"], ["diabetes", "🩸"], ["chol", "🫀"]].forEach(([k, ic]) => {
+    const cb = h("input", { type: "checkbox", id: "hp-" + k }); cb.checked = !!Hh[k]; cb.onchange = () => { Hh[k] = cb.checked; apply(); };
+    card.append(h("label", { className: "toggle", htmlFor: "hp-" + k }, h("span", {}, h("b", { textContent: ic + " " + t("hp_" + k) }), h("small", { className: "tgsub", textContent: t("hp_" + k + "Sub") })), cb));
+  });
+  card.append(h("p", { className: "wpgroup", textContent: t("hp_allergies") }));
+  const grid = h("div", { className: "diets" });
+  ALLERGENS.forEach(a => {
+    const b = h("button", { type: "button", className: "diet dsel", textContent: allergenName(a.replace(/-/g, " ")) }); b.setAttribute("aria-pressed", String(Hh.allergens.includes(a)));
+    b.onclick = () => { Hh.allergens = Hh.allergens.includes(a) ? Hh.allergens.filter(x => x !== a) : [...Hh.allergens, a]; apply(); b.setAttribute("aria-pressed", String(Hh.allergens.includes(a))); };
+    grid.append(b);
+  });
+  card.append(grid, h("p", { className: "notice", style: "margin-top:10px", textContent: t("hp_notice") }));
+  return card;
+}
+ctx.healthEditor = healthEditor;
 ctx.openProduct = code => openProduct(code);
+ctx.scanBarcode = scanBarcode;
+ctx.foodHistory = () => history;
+ctx.foodScore = scoreOf;
 ctx.foodOptions = box => {
   box.append(prefsEditor());
   const clear = h("button", { type: "button", className: "btn danger full", textContent: t("f_clearHistory") });
