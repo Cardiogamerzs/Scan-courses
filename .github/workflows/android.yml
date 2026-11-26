@@ -47,9 +47,9 @@ jobs:
           path: |
             tools/tr-cache
             ~/.cache/huggingface
-          key: tr-en-v1-${{ github.run_number }}
+          key: tr-en-v2-${{ github.run_number }}
           restore-keys: |
-            tr-en-v1-
+            tr-en-v2-
 
       - name: Traduire le contenu en anglais
         run: |
