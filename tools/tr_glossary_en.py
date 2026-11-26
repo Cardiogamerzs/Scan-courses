@@ -46,14 +46,19 @@ TERMS = [
  ("courgettes", "zucchini"), ("courgette", "zucchini"), ("avocats", "avocados"), ("avocat", "avocado"), ("poireaux", "leeks"), ("poireau", "leek"),
  ("panais", "parsnips"), ("blettes", "chard"), ("radis", "radishes"), ("navets", "turnips"), ("navet", "turnip"), ("piment", "chilli"), ("ciboulette", "chives"),
  ("chapelure", "breadcrumbs"), ("potimarron", "red kuri squash"), ("potiron", "pumpkin"), ("céleri-rave", "celeriac"), ("betteraves", "beetroot"), ("betterave", "beetroot"),
- ("champignons", "mushrooms"), ("crevettes", "prawns"), ("lardons", "bacon lardons"), ("emmental", "Emmental"), ("comté", "Comté"), ("dorade", "sea bream"), ("colin", "hake"),
+ ("champignons", "mushrooms"), ("crevettes", "prawns"), ("lardons", "lardons"), ("emmental", "Emmental"), ("comté", "Comté"), ("dorade", "sea bream"), ("colin", "hake"),
  ("cabillaud", "cod"), ("merguez", "merguez sausages"), ("chou-fleur", "cauliflower"), ("chou kale", "kale"), ("pois chiches", "chickpeas"), ("semoule", "couscous"),
- ("boulgour", "bulgur"), ("sarrasin", "buckwheat"), ("velouté", "cream soup"), ("verrines", "verrines"), ("papillote", "parcel"), ("en papillote", "en papillote"),
+ ("boulgour", "bulgur"), ("sarrasin", "buckwheat"), ("velouté", "cream soup"), ("verrines", "verrines"), ("en papillote", "baked in parchment"), ("papillote", "parchment parcel"), ("papillotes", "parchment parcels"),
  ("dinde", "turkey"), ("pruneaux", "prunes"), ("citron confit", "preserved lemon"), ("citrons confits", "preserved lemons"), ("citron", "lemon"), ("citrons", "lemons"),
  ("œufs durs", "hard-boiled eggs"), ("œuf dur", "hard-boiled egg"), ("œufs", "eggs"), ("œuf", "egg"), ("pâte feuilletée", "puff pastry"), ("pâte brisée", "shortcrust pastry"),
  ("fromage blanc", "fromage blanc"), ("crème fraîche", "crème fraîche"), ("crème légère", "light cream"), ("tarte fine", "thin tart"), ("pain complet", "wholemeal bread"),
  ("tartines", "open sandwiches"), ("tartine", "open sandwich"), ("maïs", "sweetcorn"), ("épinards", "spinach"), ("épinard", "spinach"), ("échalotes", "shallots"), ("échalote", "shallot"),
 ]
+# Expressions de cuisine (après le passage à « vous »)
+PHRASES = [("faites-les revenir", "sauté them"), ("faites-le revenir", "sauté it"), ("faites revenir", "sauté"), ("faites gratiner", "grill until golden"),
+ ("faites dorer", "brown"), ("faites-les dorer", "brown them"), ("faites cuire", "cook"), ("faites-les cuire", "cook them"), ("faites fondre", "melt"), ("faites chauffer", "heat"),
+ ("faites mijoter", "simmer"), ("faites bouillir", "boil"), ("faites griller", "toast"), ("faites tiédir", "warm"), ("faites précuire", "precook"), ("faites blanchir", "blanch"),
+ ("faites suer", "sweat"), ("faites réduire", "reduce"), ("faites sauter", "stir-fry"), ("faites mariner", "marinate"), ("faites-les mariner", "marinate them"), ("faites rôtir", "roast"), ("faites gonfler", "soak"), ("faites colorer", "brown")]
 # Verbes à l'impératif « tu » → « vous » (le traducteur comprend mieux « Faites gratiner » que « Fais gratiner »)
 VERBS = {"fais": "faites", "sers": "servez", "mets": "mettez", "remets": "remettez", "cuis": "cuisez", "bats": "battez", "couvre": "couvrez", "recouvre": "recouvrez",
  "garnis": "garnissez", "farcis": "farcissez", "refroidis": "refroidissez", "pétris": "pétrissez", "remplis": "remplissez", "réunis": "réunissez", "prends": "prenez", "fonds": "faites fondre",
