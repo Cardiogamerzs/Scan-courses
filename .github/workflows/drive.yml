@@ -1,0 +1,31 @@
+name: Relever les ingrédients sur les drives
+
+on:
+  push:
+    branches: [main]
+    paths: ["tools/drive-ingredients.py", "tools/drive-codes.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  drive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Relevé poli (robots.txt, 3 s par site, arrêt au premier blocage)
+        run: python3 -u tools/drive-ingredients.py 45 2>&1 | tee drive-log.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: drive-${{ github.run_number }}
+          name: Relevé drives ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          files: |
+            drive-ingredients.json
+            drive-log.txt
