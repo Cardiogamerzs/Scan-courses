@@ -12,7 +12,7 @@ cache = json.load(open(cache_path, encoding="utf-8")) if os.path.exists(cache_pa
 LEAD = re.compile(r"^([^0-9A-Za-zÀ-ÿŒœ«\"'(]*)(.*)$", re.S)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tr_glossary_en import EXACT, TERMS, VERBS
-VERB_RE = re.compile(r"(^|\. |; |puis |, puis )(" + "|".join(sorted(map(re.escape, VERBS), key=len, reverse=True)) + r")(?=[-\s,.]|$)", re.I)
+VERB_RE = re.compile(r"(^|\. |; |puis |, puis | et )(" + "|".join(sorted(map(re.escape, VERBS), key=len, reverse=True)) + r")(?=[-\s,.]|$)", re.I)
 TERM_RE = [(re.compile(r"(?<![\wÀ-ÿ])" + re.escape(a) + r"(?![\wÀ-ÿ])", re.I), b) for a, b in TERMS]
 def prep(t):
     def v(m):
