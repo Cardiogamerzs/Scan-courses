@@ -57,23 +57,34 @@ function normPrice(it) {
   const loc = it.location || {};
   const lat = +(loc.osm_lat ?? loc.lat), lon = +(loc.osm_lon ?? loc.lon);
   const name = loc.osm_name || loc.osm_brand || loc.website_url || t("pr_store");
-  const city = loc.osm_address_city || "";
+  const city = loc.osm_address_city || "", country = loc.osm_address_country || "", cc = (loc.osm_address_country_code || "").toLowerCase();
   const prod = it.product || {};
   return {
     price: +it.price, was: it.price_without_discount != null ? +it.price_without_discount : null, promo: !!it.price_is_discounted,
     per: it.price_per || "", cur: it.currency || "EUR", date: it.date || (it.created || "").slice(0, 10),
-    store: name, city, lat: isFinite(lat) ? lat : null, lon: isFinite(lon) ? lon : null,
+    store: name, city, country, cc, lat: isFinite(lat) ? lat : null, lon: isFinite(lon) ? lon : null,
     code: it.product_code || prod.code || "", pname: prod.product_name || it.product_name || "", brand: (prod.brands || "").split(",")[0], img: prod.image_url || "", src: "op"
   };
 }
+// Seulement la France (les autres pays faussent la comparaison)
+const FR = "&currency=EUR&location__osm_address_country=France";
+function inFrance(x) {
+  if (x.src === "me") return true;
+  if (x.cur && x.cur !== "EUR") return false;
+  if (x.cc) return x.cc === "fr";
+  if (x.country) return /france/i.test(x.country);
+  return x.lat != null && x.lat > 41 && x.lat < 51.5 && x.lon > -5.5 && x.lon < 9.8;
+}
 async function pricesFor(code) {
-  const j = await getJSON(API + "?product_code=" + encodeURIComponent(code) + "&order_by=-date&size=50");
-  return (j.items || j.results || []).map(normPrice).filter(x => isFinite(x.price) && x.price > 0);
+  const j = await getJSON(API + "?product_code=" + encodeURIComponent(code) + FR + "&order_by=-date&size=100");
+  return (j.items || j.results || []).map(normPrice).filter(x => isFinite(x.price) && x.price > 0 && inFrance(x));
 }
 async function recentPromos() {
-  const since = new Date(Date.now() - 45 * 86400e3).toISOString().slice(0, 10);
-  const j = await getJSON(API + "?price_is_discounted=true&date__gte=" + since + "&order_by=-date&size=100");
-  return (j.items || j.results || []).map(normPrice).filter(x => isFinite(x.price) && x.price > 0);
+  const since = new Date(Date.now() - 60 * 86400e3).toISOString().slice(0, 10);
+  const pages = await Promise.all([1, 2, 3, 4].map(n => getJSON(API + "?price_is_discounted=true" + FR + "&date__gte=" + since + "&order_by=-date&size=100&page=" + n).catch(() => ({}))));
+  const seen = new Set();
+  return pages.flatMap(j => j.items || j.results || []).map(normPrice).filter(x => isFinite(x.price) && x.price > 0 && inFrance(x))
+    .filter(x => { const k = x.code + "|" + x.store + "|" + x.date + "|" + x.price; if (seen.has(k)) return false; seen.add(k); return true; });
 }
 const money = (v, cur) => isFinite(v) ? v.toLocaleString(settings.lang, { style: "currency", currency: cur || "EUR" }) : "—";
 
@@ -123,16 +134,7 @@ VIEWS.prices = root => {
   wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: "📝 " + t("pr_mine") }), h("span", { textContent: mine.length ? String(mine.length) : "" })));
   if (!mine.length) wrap.append(h("p", { className: "sub", textContent: t("pr_mineHelp") }));
   else { const l = h("div", { className: "plist" }); mine.slice(0, 20).forEach(x => l.append(priceRow(x, null, true))); wrap.append(l); }
-  // Prospectus
-  wrap.append(h("h3", { className: "sect", textContent: "📰 " + t("pr_flyers") }), h("p", { className: "sub", textContent: t("pr_flyersHelp") }));
-  const links = h("div", { className: "chiprow" });
-  [["Bonial (tous les catalogues)", "https://www.bonial.fr/"], ["Intermarché", "https://www.intermarche.com/"], ["Auchan", "https://www.auchan.fr/"], ["Carrefour", "https://www.carrefour.fr/"],
-   ["E.Leclerc", "https://www.e.leclerc/"], ["Lidl", "https://www.lidl.fr/"], ["Super U", "https://www.magasins-u.com/"], ["Picard", "https://www.picard.fr/"], ["Monoprix", "https://www.monoprix.fr/"]]
-    .forEach(([l, u]) => { const b = h("button", { type: "button", className: "fchip", textContent: l + " ↗" }); b.onclick = () => openUrl(u); links.append(b); });
-  wrap.append(links);
-  wrap.append(h("p", { className: "notice", textContent: t("pr_honest") }));
-  const contrib = h("button", { type: "button", className: "btn full", textContent: "🤝 " + t("pr_contribute") }); contrib.onclick = () => openUrl("https://prices.openfoodfacts.org/");
-  wrap.append(h("div", { className: "row" }, contrib));
+  wrap.append(h("p", { className: "notice", textContent: t("pr_honest2") }));
 };
 function priceRow(x, pos, showProduct) {
   const d = pos && x.lat != null ? distKm(pos, x) : null;
@@ -183,8 +185,9 @@ VIEWS.pricecmp = root => {
     if (near.length) { const l = h("div", { className: "plist" }); near.forEach(x => l.append(priceRow(x, pos, false))); wrap.append(l); }
     else wrap.append(h("p", { className: "sub", textContent: pos ? t("pr_noneNear") : t("pr_needPos") }));
     if (far.length) {
-      const det = h("details", { className: "ing" }, h("summary", { textContent: t("pr_elsewhere", far.length) }));
-      const l = h("div", { className: "plist" }); far.slice(0, 30).forEach(x => l.append(priceRow(x, pos, false))); det.append(l); wrap.append(det);
+      // Repère national : prix médian relevé ailleurs en France (sans liste de magasins lointains)
+      const v = far.map(x => x.price).sort((a, b) => a - b), med = v[Math.floor(v.length / 2)];
+      wrap.append(h("div", { className: "optcard", style: "margin-top:10px" }, h("small", { textContent: "🇫🇷 " + t("pr_frMedian", far.length) }), h("b", { style: "display:block;font-size:20px;margin-top:4px", textContent: money(med, "EUR") + "  ·  " + money(v[0], "EUR") + " – " + money(v[v.length - 1], "EUR") })));
     }
   }
   const add = h("button", { type: "button", className: "btn primary full", textContent: "✍️ " + t("pr_iSaw") }); add.onclick = () => addMine(c);

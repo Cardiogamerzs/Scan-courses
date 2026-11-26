@@ -440,3 +440,4 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,
 .sold .stchip.mine{background:#dcfce7;border-color:#86efac;color:#15803d;font-weight:700}
 .herebox{display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 8px;color:var(--muted)}
 .acrow.premium{margin-top:10px;cursor:default}.acrow.premium s{font-weight:700;text-decoration-thickness:2px;text-decoration-color:#e8335a}
+.bigscan.pricebig,.bigscan.platebig,.bigscan.qrbig{flex-direction:column;gap:6px;text-align:center}

@@ -387,4 +387,7 @@ add("es", { acc_title: "Mi cuenta", acc_zip: "Código postal", acc_help: "Tu nom
 add("fr", { acc_premium: "Membre Premium", acc_free: "…oups non, tout est gratuit ici ! 😄" });
 add("en", { acc_premium: "Premium member", acc_free: "…oops, no: everything is free here! 😄" });
 add("es", { acc_premium: "Miembro Premium", acc_free: "…¡uy, no! aquí todo es gratis 😄" });
+add("fr", { pr_frMedian: n => "Ailleurs en France : prix médian et fourchette (" + n + " magasins)", pr_honest2: "ℹ️ Tout s'affiche ici, dans l'appli : les prix et promos relevés par les consommateurs dans les magasins près de chez toi (Open Prices) et tes propres relevés. Les enseignes ne publient pas leurs catalogues en données ouvertes, donc les promos qui n'ont été relevées par personne n'apparaissent pas. Pour enrichir ta zone, ajoute les prix que tu vois avec « J'ai vu ce prix »." });
+add("en", { pr_frMedian: n => "Elsewhere in France: median price and range (" + n + " shops)", pr_honest2: "ℹ️ Everything shows here in the app: prices and deals reported by shoppers in shops near you (Open Prices) and your own notes. Stores don't publish their catalogues as open data, so deals nobody reported won't appear." });
+add("es", { pr_frMedian: n => "En otras partes de Francia: precio mediano y rango (" + n + " tiendas)", pr_honest2: "ℹ️ Todo se muestra aquí en la app: precios y ofertas registrados por consumidores en tiendas cercanas (Open Prices) y tus notas. Las cadenas no publican sus catálogos como datos abiertos." });
 })();
