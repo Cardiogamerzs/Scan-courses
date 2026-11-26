@@ -523,6 +523,12 @@ function healthTab(body, p, sc) {
     });
     body.append(l);
   } else body.append(h("p", { className: "sub", textContent: p.ing ? t("f_noWatch") : t("f_noWatchUnk") }));
+  // D'où vient la liste quand elle n'est pas celle d'Open Food Facts pour ce code-barres
+  if (p.ingSrc && p.ing && p.ing !== "x") {
+    const [kind, rest] = [p.ingSrc.split(":")[0], p.ingSrc.slice(p.ingSrc.indexOf(":") + 1)];
+    if (kind === "same") body.append(h("p", { className: "notice", textContent: "ℹ️ " + t("u_ingSame") }));
+    else if (kind === "site") { const [url, date] = rest.split("|"); const host = (url.match(/^https?:\/\/(?:www\.)?([^/]+)/) || [])[1] || url; body.append(h("p", { className: "notice", textContent: "ℹ️ " + t("u_ingSite", host, date || "") })); }
+  }
   // Composition absente en texte mais photographiée sur Open Food Facts : lecture de la photo sur le téléphone
   if ((!p.ing || p.ing === "x") && p.imgIng && NATIVE && NATIVE.ocrUrl && !ocrTried.has(p.code)) {
     ocrTried.add(p.code);

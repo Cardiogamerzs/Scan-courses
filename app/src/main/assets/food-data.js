@@ -105,7 +105,7 @@ function normFood(r) {
     add: r.additives_tags || [], all: r.allergens_tags || [], tr: r.traces_tags || [], ana: r.ingredients_analysis_tags || [],
     lab: r.labels_tags || [], ori: r.origins_tags || [], pack: r.packaging_tags || [],
     ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || r.ingredients_text_it || r.ingredients_text_es || r.ingredients_text_de || r.ingredients_text_nl || r.ingredients_text_pt
-      || ((r.ingredients_tags || []).length > 1 ? r.ingredients_tags.map(t => t.replace(/^[a-z]{2}:/, "").replace(/-/g, " ")).join(", ") : "")).slice(0, 1500), img: r.image_front_small_url || "", imgIng: r.image_ingredients_url || "",
+      || ((r.ingredients_tags || []).length > 1 ? r.ingredients_tags.map(t => t.replace(/^[a-z]{2}:/, "").replace(/-/g, " ")).join(", ") : "")).slice(0, 1500), img: r.image_front_small_url || "", imgIng: r.image_ingredients_url || "", ingSrc: r.ingredients_source || undefined,
     st: storeKeys((r.stores || "") + "," + (r.stores_tags || []).join(",") + "," + (r.brands || ""))
   };
   p.drink = R.isDrink(p) ? 1 : 0;
