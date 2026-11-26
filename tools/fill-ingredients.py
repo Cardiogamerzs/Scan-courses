@@ -12,7 +12,7 @@ Ne fait jamais échouer la fabrication : en cas de souci, la base reste telle qu
 import json, os, sys, time
 
 PATH = sys.argv[1] if len(sys.argv) > 1 else "offdata/food.jsonl"
-PARQUET = "https://huggingface.co/datasets/openfoodfacts/product-database/resolve/main/food.parquet"
+PARQUET = os.environ.get("OFF_PARQUET") or "https://huggingface.co/datasets/openfoodfacts/product-database/resolve/main/food.parquet"
 PREF = ["fr", "main", "en", "it", "es", "de", "nl", "pt"]
 
 
@@ -51,7 +51,8 @@ def main():
         print("duckdb absent"); return
     t0 = time.time()
     con = duckdb.connect()
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+    if PARQUET.startswith("http"):
+        con.execute("INSTALL httpfs; LOAD httpfs; SET http_retries=8; SET http_retry_wait_ms=2000; SET http_retry_backoff=3; SET threads=2;")
     cols = {r[0]: r[1] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{PARQUET}')").fetchall()}
     print("Colonnes utiles :", {k: cols[k] for k in cols if k in ("code", "lang", "ingredients_text", "additives_tags", "ingredients_analysis_tags", "allergens_tags", "ingredients_tags")})
     if "code" not in cols or "ingredients_text" not in cols:

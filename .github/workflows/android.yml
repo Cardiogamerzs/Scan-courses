@@ -38,7 +38,13 @@ jobs:
       - name: Compléter les listes d'ingrédients
         run: |
           python3 -m pip install --quiet --user --break-system-packages duckdb
+          # Base complète (toutes langues) téléchargée d'un bloc : la lecture à distance est limitée (HTTP 429)
+          curl -sSL --retry 5 --retry-delay 20 -o "$RUNNER_TEMP/food.parquet" \
+            https://huggingface.co/datasets/openfoodfacts/product-database/resolve/main/food.parquet || true
+          ls -l "$RUNNER_TEMP/food.parquet" || true
+          if [ -s "$RUNNER_TEMP/food.parquet" ]; then export OFF_PARQUET="$RUNNER_TEMP/food.parquet"; fi
           python3 tools/fill-ingredients.py offdata/food.jsonl
+          rm -f "$RUNNER_TEMP/food.parquet"
 
       - name: Construire la base hors ligne de l'appli
         run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl && node tools/diag-cosmetics.mjs && node tools/pack-db.mjs
