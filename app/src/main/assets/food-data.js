@@ -201,6 +201,8 @@ async function findProduct(code) {
   if (!p) { p = await onlineProduct(code); if (p) seenPut(p); }
   // Un « aliment » qui est en fait un cosmétique : on cherche d'abord sa vraie fiche dans Open Beauty Facts
   if (p && looksNonFood(p)) { const b = await beautyOnline(code); if (b && b.inci) { seenPut(b); p = b; } }
+  // Cosmétique sans composition dans la base du téléphone : on regarde si la fiche en ligne en a une (autre langue)
+  if (p && p.type === "beauty" && !p.inci && !p.fromFood) { const b = await beautyOnline(code); if (b && b.inci) { seenPut(b); p = b; } }
   if (p && looksFood(p)) { const f = await foodOnline(code); if (f && !looksNonFood(f)) { seenPut(f); p = f; } }
   return finish(p, code);
 }
