@@ -116,7 +116,14 @@ function additivesOf(p) {
 }
 
 /* ---------- Mots-clés dans les ingrédients et catégories ---------- */
-function text(p) { return ((p.ing || "") + " " + (p.name || "") + " " + (p.cats || []).join(" ")).toLowerCase(); }
+// Sans les faux amis de l'alcool (levure de bière, vinaigre de vin, « sans alcool ») : même règle que AdditiveDB.harmless
+function harmless(x) {
+  return x.replace(/levures? de bi[eè]re/g, "levure").replace(/vinaigres?( balsamique)?( de| d'| à base de)? ?(vin|cidre|x[ée]r[eè]s|riz|malt)( blanc| rouge)?/g, "vinaigre")
+    .replace(/(sans|0 ?%|z[ée]ro) ?(d'|d’)?alcool/g, "").replace(/d[ée]salcoolis[ée]e?s?/g, "").replace(/sucres? d'alcool|alcools? de sucre/g, "polyols")
+    // lécithine et huile de soja : pas de phyto-œstrogènes en quantité notable
+    .replace(/l[ée]cithines?\s*(de|d'|:)?\s*[\[(]?\s*(de )?soja\s*[\])]?/g, "lécithines").replace(/huiles? de soja/g, "huile végétale");
+}
+function text(p) { return harmless(((p.ing || "") + " " + (p.name || "") + " " + (p.cats || []).join(" ")).toLowerCase()); }
 function has(p, re) { return re.test(text(p)); }
 function cat(p, re) { return (p.cats || []).some(c => re.test(c)); }
 

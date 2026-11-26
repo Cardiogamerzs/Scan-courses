@@ -506,8 +506,15 @@ const WATCH = [
   ["quinine", /quinine/, "low", "Quinine", "Déconseillée pendant la grossesse.", []],
   ["sterols", /phytostérols?|stérols? végéta|stanols?/, "low", "Phytostérols ajoutés", "Réservés aux personnes ayant trop de cholestérol ; déconseillés aux enfants et aux femmes enceintes ou allaitantes.", ["ster"]]
 ];
+// Mots qui ressemblent à de l'alcool sans en être : levure de bière, vinaigre de vin ou de cidre, « sans alcool »
+function harmless(x) {
+  return x.replace(/levures? de bi[eè]re/g, "levure").replace(/vinaigres?( balsamique)?( de| d'| à base de)? ?(vin|cidre|x[ée]r[eè]s|riz|malt)( blanc| rouge)?/g, "vinaigre")
+    .replace(/(sans|0 ?%|z[ée]ro) ?(d'|d’)?alcool/g, "").replace(/d[ée]salcoolis[ée]e?s?/g, "").replace(/sucres? d'alcool|alcools? de sucre/g, "polyols")
+    // lécithine et huile de soja : pas de phyto-œstrogènes en quantité notable
+    .replace(/l[ée]cithines?\s*(de|d'|:)?\s*[\[(]?\s*(de )?soja\s*[\])]?/g, "lécithines").replace(/huiles? de soja/g, "huile végétale");
+}
 function watchIngredients(text) {
-  const x = (text || "").toLowerCase().replace(/sans sucres? ajoutés?|sans sucre/g, "");
+  const x = harmless((text || "").toLowerCase()).replace(/sans sucres? ajoutés?|sans sucre/g, "");
   const out = [];
   for (const [key, re, lv, title, why, src] of WATCH) {
     if (key === "flav" && out.some(w => w.key === "artflav")) continue;
@@ -532,5 +539,5 @@ function get(code) {
 // Niveau affiché : risk (À risque), limited (Risque limité), safe (Sans risque), unk (non évalué)
 function band(r) { return r === "high" || r === "mod" ? "risk" : r === "low" ? "limited" : r === "none" ? "safe" : "unk"; }
 
-root.AdditiveDB = { DB, FN, SRC, get, band, norm, fmtCode, watchIngredients, UPF };
+root.AdditiveDB = { harmless, DB, FN, SRC, get, band, norm, fmtCode, watchIngredients, UPF };
 })(window);
