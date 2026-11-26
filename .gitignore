@@ -15,3 +15,8 @@ tr-strings.json
 tr-en-review.json
 tools/tr-cache/
 __pycache__/
+ios/www/
+ios/build/
+ios/Sovee.xcodeproj/
+ios/xcodebuild.log
+ios/Sovee/Info.plist

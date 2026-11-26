@@ -1,0 +1,41 @@
+name: Sovee
+options:
+  bundleIdPrefix: fr.erwan
+  deploymentTarget:
+    iOS: "16.4"
+targets:
+  Sovee:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sovee
+      - path: www
+        type: folder
+        buildPhase: resources
+    info:
+      path: Sovee/Info.plist
+      properties:
+        CFBundleDisplayName: Sovée
+        CFBundleShortVersionString: "4.7"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        CFBundleDevelopmentRegion: fr
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIViewControllerBasedStatusBarAppearance: true
+        ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: "Sovée utilise l'appareil photo pour scanner les codes-barres, les tickets et les étiquettes."
+        NSMicrophoneUsageDescription: "Sovée utilise le micro pour la recherche vocale."
+        NSSpeechRecognitionUsageDescription: "Sovée transforme ta voix en texte pour la recherche vocale."
+        NSLocationWhenInUseUsageDescription: "Sovée utilise ta position pour trouver les prix et les magasins près de chez toi."
+        NSPhotoLibraryUsageDescription: "Sovée lit une photo choisie pour lire un code ou une étiquette."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.erwan.sovee
+        PRODUCT_NAME: Sovee
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "4.7"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: Sovée
+    scheme: {}

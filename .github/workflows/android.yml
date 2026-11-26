@@ -62,6 +62,13 @@ jobs:
           fi
           python3 tools/translate.py tr-strings.json app/src/main/assets/data/tr-en.jgz
 
+      # Les fichiers de l'appli (avec la base produits) servent aussi à la version iPhone
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sovee-www
+          path: app/src/main/assets
+          retention-days: 3
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -142,3 +149,46 @@ jobs:
           prerelease: true
           make_latest: false
           files: emulator-results.zip
+
+  # Version iPhone : fabrication sur un Mac, lancement dans le simulateur, captures d'écran
+  ios:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sovee-www
+          path: ios/www
+
+      - name: Générer le projet Xcode
+        run: |
+          brew install xcodegen
+          cd ios && xcodegen generate
+
+      - name: Fabriquer l'appli pour le simulateur
+        run: |
+          cd ios
+          xcodebuild -project Sovee.xcodeproj -scheme Sovee -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO build | tee xcodebuild.log | grep -E "error:|warning: .*Sovee/|BUILD" || true
+          test -d build/Build/Products/Debug-iphonesimulator/Sovee.app
+
+      - name: Tester dans le simulateur iPhone
+        run: bash tools/ios-sim-test.sh ios/build/Build/Products/Debug-iphonesimulator/Sovee.app
+
+      - name: Publier l'appli simulateur et les captures
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-${{ github.run_number }}
+          name: iPhone (simulateur) ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          files: |
+            ios-results.zip
+            Sovee-ios-simulator.zip
+            ios/xcodebuild.log
