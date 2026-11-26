@@ -56,6 +56,39 @@ function rankGroup(cats, list) {
   return null;
 }
 
+/* ---------- Enseignes (magasins) ----------
+   Repérées dans le champ « magasins » d'Open Food Facts et dans les marques distributeurs */
+const STORES = [
+  ["auchan", "Auchan", "gen", "#e2001a", /auchan|(^|[^a-z])mmm!?([^a-z]|$)|pouce/],
+  ["carrefour", "Carrefour", "gen", "#1e5bc6", /carrefour|reflets de france|(^|[^a-z])simpl([^a-z]|$)/],
+  ["casino", "Casino", "gen", "#d6001c", /casino|geant casino|terre et saveur|le petit marche/],
+  ["cora", "Cora", "gen", "#c8102e", /(^|[^a-z])cora([^a-z]|$)/],
+  ["leclerc", "E.Leclerc", "gen", "#0066b3", /leclerc|marque repere|(^|[^a-z])eco\+|nos regions ont du talent|bio village/],
+  ["franprix", "Franprix", "gen", "#f36f21", /franprix/],
+  ["intermarche", "Intermarché", "gen", "#e30613", /intermarche|paturages|chabrior|top budget|monique ranou|saint eloi|itineraire des saveurs|capitaine cook|fiorini|paquito/],
+  ["leaderprice", "Leader Price", "disc", "#e30613", /leader price/],
+  ["match", "Match", "gen", "#e2001a", /supermarche match|(^|[^a-z])match([^a-z]|$)/],
+  ["monoprix", "Monoprix", "gen", "#d4002a", /monoprix|monop/],
+  ["u", "Système U", "gen", "#0072bc", /systeme u|super u|hyper u|magasins u|u express|(^|[^a-z])u bio|(^|[^a-z])u saveurs|bien vu|(^|,)\s*u\s*(,|$)/],
+  ["spar", "Spar", "gen", "#00843d", /(^|[^a-z])spar([^a-z]|$)|vival/],
+  ["lidl", "Lidl", "disc", "#0050aa", /lidl|milbona|(^|[^a-z])cien([^a-z]|$)|chef select|crownfield|saint alby|pilos|solevita|freeway|envia|favorina|italiamo|alesto|gelatelli/],
+  ["aldi", "Aldi", "disc", "#00205b", /aldi|le gaulois aldi/],
+  ["netto", "Netto", "disc", "#ffd200", /netto/],
+  ["grandfrais", "Grand Frais", "spec", "#7ab929", /grand frais/],
+  ["picard", "Picard", "spec", "#0a3d91", /picard/],
+  ["thiriet", "Thiriet", "spec", "#d6001c", /thiriet/],
+  ["biocoop", "Biocoop", "bio", "#6aa834", /biocoop/],
+  ["naturalia", "Naturalia", "bio", "#79b51c", /naturalia/],
+  ["lavieclaire", "La Vie Claire", "bio", "#0e7c3a", /la vie claire/],
+  ["biocbon", "Bio c' Bon", "bio", "#2f8f3a", /bio c.? ?bon/],
+  ["eauvive", "L'Eau Vive", "bio", "#2b8cc4", /l.?eau vive/]
+];
+function stripAcc(x) { return String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/-/g, " "); }
+function storeKeys(text) {
+  const x = stripAcc(text); if (!x.trim()) return [];
+  return STORES.filter(s => s[4].test(x)).map(s => s[0]);
+}
+
 /* Normalisation d'un produit Open Food Facts brut */
 function num(v) { const n = parseFloat(v); return isNaN(n) ? null : Math.round(n * 100) / 100; }
 function normFood(r) {
@@ -71,7 +104,8 @@ function normFood(r) {
       fv: num(nu["fruits-vegetables-nuts_100g"] ?? nu["fruits-vegetables-nuts-estimate_100g"] ?? nu["fruits-vegetables-legumes-estimate-from-ingredients_100g"] ?? nu["fruits-vegetables-nuts-estimate-from-ingredients_100g"]) },
     add: r.additives_tags || [], all: r.allergens_tags || [], tr: r.traces_tags || [], ana: r.ingredients_analysis_tags || [],
     lab: r.labels_tags || [], ori: r.origins_tags || [], pack: r.packaging_tags || [],
-    ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || "").slice(0, 1500), img: r.image_front_small_url || ""
+    ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || "").slice(0, 1500), img: r.image_front_small_url || "",
+    st: storeKeys((r.stores || "") + "," + (r.stores_tags || []).join(",") + "," + (r.brands || ""))
   };
   p.drink = R.isDrink(p) ? 1 : 0;
   p.rg = rankGroup(p.cats, RANK_FOOD);
@@ -92,13 +126,13 @@ function indexRow(p) {
   if (p.type === "beauty") return { c: p.code, n: p.name, b: p.brand, r: p.rg, k: p.cats[p.cats.length - 1] || "", s: R.scoreCosmetic(p).score };
   return { c: p.code, n: p.name, b: p.brand, r: p.rg, k: p.cats[p.cats.length - 1] || "", k2: p.cats[p.cats.length - 2] || "", g: p.g2, ns: p.ns, s: p.nss, nv: p.nova, e: p.eco, o: R.isOrganic(p) ? 1 : 0,
     a: p.add.map(a => a.replace(/^en:/, "")), f: [p.n.fat, p.n.sat, p.n.sug, p.n.salt], d: p.drink, hi: p.ing ? 1 : 0,
-    an: (p.ana || []).filter(x => /vegan|vegetarian|palm/.test(x)).map(x => x.replace(/^en:/, "")), al: (p.all || []).map(x => x.replace(/^en:/, "")) };
+    an: (p.ana || []).filter(x => /vegan|vegetarian|palm/.test(x)).map(x => x.replace(/^en:/, "")), al: (p.all || []).map(x => x.replace(/^en:/, "")), st: (p.st || []).length ? p.st : undefined };
 }
 // Reconstitue un produit minimal depuis une ligne d'index, pour le noter
 function rowAsProduct(r) {
   return { type: "food", code: r.c, name: r.n, brand: r.b, rg: r.r, ns: r.ns, nss: r.s, nova: r.nv, eco: r.e, lab: r.o ? ["en:organic"] : [],
     add: r.a || [], n: { fat: r.f && r.f[0], sat: r.f && r.f[1], sug: r.f && r.f[2], salt: r.f && r.f[3] }, drink: r.d, ing: r.hi ? "x" : "",
-    ana: (r.an || []).map(x => "en:" + x), all: (r.al || []).map(x => "en:" + x) };
+    ana: (r.an || []).map(x => "en:" + x), all: (r.al || []).map(x => "en:" + x), st: r.st || [] };
 }
 
 /* ---------- Base hors ligne (fichiers dans l'APK) ---------- */
@@ -221,5 +255,5 @@ async function searchLocal(q, limit = 60) {
   return out;
 }
 
-root.FoodData = { setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
+root.FoodData = { STORES, storeKeys, setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
 })(typeof window !== "undefined" ? window : globalThis);

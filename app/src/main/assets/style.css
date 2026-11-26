@@ -423,3 +423,20 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,
 .altimg{width:96px;height:96px;border-radius:14px;background:#fff center/contain no-repeat;background-origin:content-box;padding:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:36px}
 .altsc{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-top:2px}
 .vivid .logo b{background:none;color:var(--fg)}
+/* Compte : enseignes */
+.flabel{display:block;font-weight:600;font-size:14px;margin:4px 0 6px}
+.acrow{width:100%;display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:inherit;font:inherit;text-align:left;padding:12px 14px;cursor:pointer}
+.acico{font-size:22px}
+.acmeta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.acmeta small{color:var(--muted);font-size:13px}
+.stlist{display:flex;flex-direction:column}
+.strow{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.stlogo{flex:none;width:32px;height:32px;border-radius:99px;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px}
+.stname{flex:1;font-size:16px}
+.strow input{width:22px;height:22px;accent-color:#16a34a}
+.stbadge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border-radius:99px;padding:2px 8px;margin-top:2px}
+.sold{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center;font-size:13px;color:var(--muted)}
+.sold .stchip{border:1px solid var(--line);border-radius:99px;padding:3px 10px;color:var(--fg)}
+.sold .stchip.mine{background:#dcfce7;border-color:#86efac;color:#15803d;font-weight:700}
+.herebox{display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 8px;color:var(--muted)}
+.acrow.premium{margin-top:10px;cursor:default}.acrow.premium s{font-weight:700;text-decoration-thickness:2px;text-decoration-color:#e8335a}

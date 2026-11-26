@@ -93,6 +93,7 @@ def food(r):
         "traces_tags": tags(r.get("traces_tags")), "ingredients_analysis_tags": tags(r.get("ingredients_analysis_tags")),
         "labels_tags": tags(r.get("labels_tags")), "origins_tags": tags(r.get("origins_tags")), "packaging_tags": tags(r.get("packaging_tags")),
         "ingredients_text_fr": (r.get("ingredients_text") or r.get("ingredients_text_fr") or r.get("ingredients_text_en") or "")[:1500], "image_front_small_url": r.get("image_small_url", ""),
+        "stores": (r.get("stores") or "")[:200],
     }
 def beauty(r):
     return {

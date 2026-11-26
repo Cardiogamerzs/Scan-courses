@@ -261,6 +261,7 @@ VIEWS.product = rootEl => {
     info.append(chips);
   }
   hero.append(img, info); wrap.append(hero);
+  if (p.type !== "beauty") { const sa = soldAt(p); if (sa) wrap.append(sa); }
   if (p.type !== "beauty" && ctx.openPrices) {
     const pb = h("button", { type: "button", className: "btn full pricebtn", textContent: "🏷️ " + t("pr_compare") });
     pb.onclick = () => ctx.openPrices(p.code, p.name); wrap.append(h("div", { className: "row", style: "margin-top:10px" }, pb));
@@ -343,6 +344,30 @@ function additiveSheet(a, back) {
     sh.append(more, close);
   });
 }
+/* Enseignes : celle où l'on se trouve (position + OpenStreetMap), sinon celles cochées dans les options */
+let hereCache = null;
+function whereAmI() {
+  if (!settings.storeGeo || !navigator.geolocation) return Promise.resolve(null);
+  if (hereCache && Date.now() - hereCache.t < 5 * 60e3) return Promise.resolve(hereCache.k);
+  return new Promise(ok => {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude: la, longitude: lo } = pos.coords;
+      const q = '[out:json][timeout:8];nwr(around:120,' + la.toFixed(5) + ',' + lo.toFixed(5) + ')[shop~"^(supermarket|convenience|organic|frozen_food|greengrocer|department_store)$"];out tags 5;';
+      fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(r => r.json()).then(j => {
+        let k = null;
+        for (const el of j.elements || []) { const tg = el.tags || {}; const ks = D.storeKeys([tg.brand, tg.name, tg.operator].filter(Boolean).join(",")); if (ks.length) { k = ks[0]; break; } }
+        hereCache = { k, t: Date.now() }; ok(k);
+      }).catch(() => ok(null));
+    }, () => ok(null), { timeout: 10000, maximumAge: 5 * 60e3 });
+  });
+}
+function storeName(k) { return (D.STORES.find(s => s[0] === k) || [, k])[1]; }
+function preferredStores() { return whereAmI().then(here => ({ here, keys: here ? [here] : (settings.stores || []) })); }
+function soldAt(p) {
+  const st = p.st || []; if (!st.length) return null;
+  const mine = new Set(settings.stores || []);
+  return h("div", { className: "sold" }, h("span", { textContent: t("st_soldAt") }), ...st.map(k => h("span", { className: "stchip" + (mine.has(k) ? " mine" : ""), textContent: storeName(k) })));
+}
 /* Alternatives mieux notées (même rayon) */
 function findAlternatives(p, max) {
   const type = p.type === "beauty" ? "beauty" : "food";
@@ -355,9 +380,15 @@ function findAlternatives(p, max) {
     if (pool.length < 4 && c1) pool = idx.filter(r => r.c !== p.code && sameGroup(r) && (r.k === c1 || r.k2 === c1 || (c2 && (r.k === c2 || r.k2 === c2))));
     if (pool.length < 2 && type === "beauty" && p.rg) pool = idx.filter(r => r.c !== p.code && r.r === p.rg);
     return pool.map(r => ({ r, s: type === "beauty" ? r.s : R.scoreFood(D.rowAsProduct(r), F.weights).score }))
-      .filter(x => x.s != null && (mine == null || x.s > mine) && (type === "beauty" || dietOk(x.r))).sort((a, b) => b.s - a.s).slice(0, max)
-      .map(({ r, s }) => ({ p: { code: r.c, name: r.n, brand: r.b, type }, s }));
-  });
+      .filter(x => x.s != null && (mine == null || x.s > mine) && (type === "beauty" || dietOk(x.r))).sort((a, b) => b.s - a.s).slice(0, max * 3)
+      .map(({ r, s }) => ({ p: { code: r.c, name: r.n, brand: r.b, type, st: r.st || [] }, s }));
+  }).then(list => preferredStores().then(pref => {
+    if (!pref.keys.length) return Object.assign(list, { pref });
+    const has = x => (x.p.st || []).some(k => pref.keys.includes(k));
+    const out = list.filter(has).concat(list.filter(x => !has(x)));
+    out.forEach(x => { x.at = (x.p.st || []).filter(k => pref.keys.includes(k)); });
+    return Object.assign(out.slice(0, max), { pref });
+  })).then(l => l.length > max ? Object.assign(l.slice(0, max), { pref: l.pref }) : l);
 }
 function altCarousel(body, p) {
   const wrap = h("div", {}); body.append(wrap);
@@ -365,10 +396,12 @@ function altCarousel(body, p) {
     if (!list.length) return;
     const all = h("button", { type: "button", className: "linkbtn", textContent: t("b_seeAll") }); all.onclick = () => { productTab = "alt"; ctx.render(); window.scrollTo(0, 0); };
     wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: t("f_alt") }), all));
+    if (list.pref && list.pref.here) wrap.append(h("p", { className: "herebox", textContent: t("st_here", storeName(list.pref.here)) }));
+    else if (list.pref && list.pref.keys.length) wrap.append(h("p", { className: "herebox", textContent: t("st_mine", list.pref.keys.map(storeName).join(", ")) }));
     const row = h("div", { className: "altrow" });
-    list.forEach(({ p: q, s }) => {
+    list.forEach(({ p: q, s, at }) => {
       const c = h("button", { type: "button", className: "altcard" }, productImage(h("div", { className: "altimg" }), q),
-        h("b", { textContent: q.name || q.code }), h("small", { textContent: q.brand || "" }),
+        h("b", { textContent: q.name || q.code }), h("small", { textContent: q.brand || "" }), at && at.length ? h("span", { className: "stbadge", textContent: "🏪 " + t("st_avail", storeName(at[0])) }) : null,
         h("span", { className: "altsc" }, dot(COLORS[R.scoreClass(s)]), h("span", { textContent: s + "/100 · " + scoreLabel(s) })));
       c.onclick = () => openProduct(q.code, q); row.append(c);
     });
@@ -624,9 +657,12 @@ function altTab(body, p) {
   body.append(h("p", { className: "sub", textContent: t("a_help") }));
   const list = h("div", { className: "plist" }); body.append(list);
   const mine = scoreOf(p);
+  const choose = h("button", { type: "button", className: "linkbtn", textContent: "🏪 " + t("st_choose") }); choose.onclick = () => ctx.storesSheet(() => ctx.render());
+  body.insertBefore(choose, list);
   findAlternatives(p, 15).then(rows => {
+    if (rows.pref && rows.pref.here) list.before(h("p", { className: "herebox", textContent: t("st_here", storeName(rows.pref.here)) }));
     if (!rows.length) { list.append(h("p", { className: "sub", textContent: mine != null && mine >= 75 ? t("a_already") : t("a_none") })); return; }
-    rows.forEach(({ p: q, s }) => list.append(productRow(q, { score: s })));
+    rows.forEach(({ p: q, s, at }) => list.append(productRow(q, { score: s, sub: at && at.length ? "🏪 " + at.map(storeName).join(", ") : "" })));
   });
 }
 

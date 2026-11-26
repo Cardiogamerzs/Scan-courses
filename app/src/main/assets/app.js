@@ -566,7 +566,17 @@ VIEWS.options = root => {
     opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("language") }), langs));
     const nm = h("input", { id: "o-name", type: "text", value: settings.name || "", placeholder: t("namePh"), autocomplete: "given-name", maxLength: 30 });
     nm.onchange = () => { settings.name = nm.value.trim(); saveSettings(); toast(t("saved")); };
-    opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("nameTitle") }), h("div", { className: "f", style: "margin:0" }, nm), h("p", { className: "sub", style: "margin:8px 0 0", textContent: t("nameHelp") })));
+    const zip = h("input", { id: "o-zip", type: "text", inputMode: "numeric", value: settings.zip || "", placeholder: "83600", autocomplete: "postal-code", maxLength: 5 });
+    zip.onchange = () => { const v = zip.value.replace(/\D/g, "").slice(0, 5); zip.value = v; settings.zip = v; saveSettings(); toast(t("saved")); };
+    const storesBtn = h("button", { type: "button", className: "acrow" }, h("span", { className: "acico", textContent: "🏪" }),
+      h("div", { className: "acmeta" }, h("b", { textContent: t("st_title") }), h("small", { textContent: storesSummary() })), h("span", { className: "chev", textContent: "›" }));
+    storesBtn.onclick = () => storesSheet(() => render());
+    opts.append(h("div", { className: "optcard" }, h("h3", { textContent: t("acc_title") }),
+      h("label", { className: "flabel", htmlFor: "o-name", textContent: "👤 " + t("nameTitle") }), h("div", { className: "f", style: "margin:0 0 12px" }, nm),
+      h("label", { className: "flabel", htmlFor: "o-zip", textContent: "🏠 " + t("acc_zip") }), h("div", { className: "f", style: "margin:0 0 12px" }, zip),
+      storesBtn,
+      h("div", { className: "acrow premium" }, h("span", { className: "acico", textContent: "💖" }), h("div", { className: "acmeta" }, h("s", { textContent: t("acc_premium") }), h("small", { textContent: t("acc_free") }))),
+      h("p", { className: "sub", style: "margin:8px 0 0", textContent: t("acc_help") })));
     opts.append(themePicker(t("background"), settings.theme, v => { settings.theme = v; saveSettings(); applyTheme(v); render(); }, false));
   } else {
     opts.append(themePicker(t("moduleBg"), settings.modTheme[optScope] || "home", v => { settings.modTheme[optScope] = v; saveSettings(); applyTheme(themeFor(optScope)); render(); }, true));
@@ -586,6 +596,34 @@ VIEWS.options = root => {
   wrap.append(opts, h("p", { className: "version", textContent: t("version", APP_VERSION) }));
   root.append(wrap);
 };
+/* Enseignes préférées (Options > Compte) */
+function storesSummary() {
+  const D = window.FoodData, list = (settings.stores || []).map(k => (D.STORES.find(s => s[0] === k) || [])[1]).filter(Boolean);
+  return (settings.storeGeo ? "📍 " + t("st_geoOn") + (list.length ? " · " : "") : "") + (list.length ? list.join(", ") : settings.storeGeo ? "" : t("st_none"));
+}
+function storesSheet(done) {
+  const D = window.FoodData;
+  openSheet(sh => {
+    sh.append(h("h2", { textContent: t("st_title") }), h("p", { className: "sub", textContent: t("st_help") }));
+    const geo = h("input", { type: "checkbox", id: "st-geo" }); geo.checked = !!settings.storeGeo;
+    geo.onchange = () => { settings.storeGeo = geo.checked; saveSettings(); if (geo.checked && navigator.geolocation) navigator.geolocation.getCurrentPosition(() => {}, () => toast(t("st_geoFail")), { timeout: 15000 }); };
+    sh.append(h("div", { className: "optcard" }, h("label", { className: "toggle", htmlFor: "st-geo" }, h("span", { textContent: "📍 " + t("st_geo") }), geo), h("p", { className: "sub", style: "margin:8px 0 0", textContent: t("st_geoHelp") })));
+    const sel = new Set(settings.stores || []);
+    [["gen", "st_gen"], ["disc", "st_disc"], ["spec", "st_spec"], ["bio", "st_bio"]].forEach(([g, key]) => {
+      sh.append(h("h3", { className: "shh", textContent: t(key) }));
+      const l = h("div", { className: "stlist" });
+      D.STORES.filter(s => s[2] === g).forEach(([k, name, , color]) => {
+        const cb = h("input", { type: "checkbox", id: "st-" + k }); cb.checked = sel.has(k);
+        cb.onchange = () => { cb.checked ? sel.add(k) : sel.delete(k); settings.stores = [...sel]; saveSettings(); };
+        const logo = h("span", { className: "stlogo", textContent: name.replace(/^E\./, "").replace(/^(Système |La |L'|Le )/, "").slice(0, 1).toUpperCase() }); logo.style.background = color;
+        l.append(h("label", { className: "strow", htmlFor: "st-" + k }, logo, h("span", { className: "stname", textContent: name }), cb));
+      });
+      sh.append(l);
+    });
+    const ok = h("button", { type: "button", className: "btn primary full", style: "margin-top:16px", textContent: t("st_done") }); ok.onclick = () => { closeSheet(); if (done) done(); };
+    sh.append(ok);
+  });
+}
 function themeName(n) { return n === "home" ? t("sameAsHome") : n === "photo" ? t("wp_photo") : (T().themes[n] || I18N.fr.themes[n] || ""); }
 function themePicker(title, current, onPick, withHome) {
   const card = h("div", { className: "optcard" }, h("h3", { textContent: title }));
@@ -683,7 +721,7 @@ async function copyText(text) {
 }
 function themePickerFor(scope) { return themePicker(t("moduleBg"), settings.modTheme[scope] || "home", v => { settings.modTheme[scope] = v; saveSettings(); applyTheme(themeFor(scope)); render(); }, true); }
 const ctx = { h, t, T, settings, saveSettings, go, header, openSheet, closeSheet, VIEWS, fab, lsGet, lsSet, toast, NATIVE, pickPhoto, decodeImage, view: () => view, render,
-  modules: [], backHooks: [], viewModule: {}, openUrl, copyText, codeSVG, loadScript, bright, deleteZone, themePickerFor, imgSrc };
+  modules: [], backHooks: [], viewModule: {}, storesSheet, openUrl, copyText, codeSVG, loadScript, bright, deleteZone, themePickerFor, imgSrc };
 if (window.FoodUI) FoodUI.install(ctx);
 for (const ext of window.SC_EXT || []) ext(ctx);
 applyTheme(settings.theme);

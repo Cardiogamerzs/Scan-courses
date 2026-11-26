@@ -28,7 +28,7 @@ jobs:
         id: offcache
         with:
           path: offdata
-          key: offdata-v5-${{ steps.week.outputs.w }}
+          key: offdata-v6-${{ steps.week.outputs.w }}
 
       - name: Télécharger la base Open Food Facts / Open Beauty Facts
         if: steps.offcache.outputs.cache-hit != 'true'

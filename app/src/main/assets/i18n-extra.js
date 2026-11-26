@@ -369,4 +369,22 @@ add("en", { wp_vivid: "Bright colours", wp_vpatterns: "Colourful patterns" });
 Object.assign(window.I18N.en.themes, {"v_blue": "Royal blue", "v_red": "Red", "v_green": "Green", "v_orange": "Orange", "v_violet": "Purple", "v_pink": "Fuchsia", "v_teal": "Turquoise", "v_yellow": "Yellow", "v_black": "Black", "vp_waves": "Blue waves", "vp_hearts": "Red hearts", "vp_dots": "Green dots", "vp_stripes": "Orange stripes", "vp_stars": "Purple stars", "vp_check": "Fuchsia check", "vp_zigzag": "Turquoise zigzag", "vp_polka": "Yellow polka", "vp_confetti": "Confetti", "vp_grid": "Blue grid"});
 add("es", { wp_vivid: "Colores vivos", wp_vpatterns: "Motivos de colores" });
 Object.assign(window.I18N.es.themes, {"v_blue": "Azul real", "v_red": "Rojo", "v_green": "Verde", "v_orange": "Naranja", "v_violet": "Violeta", "v_pink": "Fucsia", "v_teal": "Turquesa", "v_yellow": "Amarillo", "v_black": "Negro", "vp_waves": "Olas azules", "vp_hearts": "Corazones rojos", "vp_dots": "Lunares verdes", "vp_stripes": "Rayas naranjas", "vp_stars": "Estrellas violetas", "vp_check": "Damero fucsia", "vp_zigzag": "Zigzag turquesa", "vp_polka": "Lunares amarillos", "vp_confetti": "Confeti", "vp_grid": "Cuadrícula azul"});
+add("fr", { acc_title: "Mon compte", acc_zip: "Code postal", acc_help: "Ton prénom, ton code postal et tes enseignes restent sur ton téléphone. Le code postal sert aux prix « autour de moi » quand la position est coupée.",
+  st_title: "Enseignes", st_none: "Aucune enseigne choisie", st_geoOn: "Position", st_help: "Coche les magasins où tu fais tes courses : les alternatives disponibles chez eux passent en premier.",
+  st_geo: "Utiliser ma position", st_geoHelp: "Quand tu es dans un magasin, les alternatives de ce magasin passent en premier. Sinon, les enseignes cochées ci-dessous sont utilisées. Ta position est envoyée à OpenStreetMap pour trouver le magasin.",
+  st_geoFail: "Position indisponible : vérifie l'autorisation de localisation.", st_gen: "Généralistes", st_disc: "Discount", st_spec: "Surgelés et spécialistes", st_bio: "Bio", st_done: "C'est noté",
+  st_soldAt: "Vendu chez :", st_avail: n => "Chez " + n, st_here: n => "📍 Tu es chez " + n + " : ses produits passent en premier.", st_mine: n => "🏪 Tes enseignes en premier (" + n + ")", st_choose: "Choisir mes enseignes" });
+add("en", { acc_title: "My account", acc_zip: "Postcode", acc_help: "Your name, postcode and shops stay on your phone. The postcode is used for nearby prices when location is off.",
+  st_title: "Shops", st_none: "No shop selected", st_geoOn: "Location", st_help: "Tick the shops you use: alternatives available there come first.",
+  st_geo: "Use my location", st_geoHelp: "When you're inside a shop, its products come first. Otherwise the shops ticked below are used. Your location is sent to OpenStreetMap to find the shop.",
+  st_geoFail: "Location unavailable: check the location permission.", st_gen: "Supermarkets", st_disc: "Discount", st_spec: "Frozen and specialists", st_bio: "Organic", st_done: "Done",
+  st_soldAt: "Sold at:", st_avail: n => "At " + n, st_here: n => "📍 You're at " + n + ": its products come first.", st_mine: n => "🏪 Your shops first (" + n + ")", st_choose: "Choose my shops" });
+add("es", { acc_title: "Mi cuenta", acc_zip: "Código postal", acc_help: "Tu nombre, código postal y tiendas se quedan en tu teléfono.",
+  st_title: "Tiendas", st_none: "Ninguna tienda elegida", st_geoOn: "Ubicación", st_help: "Marca las tiendas donde compras: las alternativas disponibles allí salen primero.",
+  st_geo: "Usar mi ubicación", st_geoHelp: "Si estás en una tienda, sus productos salen primero. Si no, se usan las tiendas marcadas. Tu ubicación se envía a OpenStreetMap para encontrar la tienda.",
+  st_geoFail: "Ubicación no disponible: revisa el permiso.", st_gen: "Supermercados", st_disc: "Descuento", st_spec: "Congelados y especialistas", st_bio: "Ecológico", st_done: "Listo",
+  st_soldAt: "Se vende en:", st_avail: n => "En " + n, st_here: n => "📍 Estás en " + n + ": sus productos salen primero.", st_mine: n => "🏪 Tus tiendas primero (" + n + ")", st_choose: "Elegir mis tiendas" });
+add("fr", { acc_premium: "Membre Premium", acc_free: "…oups non, tout est gratuit ici ! 😄" });
+add("en", { acc_premium: "Premium member", acc_free: "…oops, no: everything is free here! 😄" });
+add("es", { acc_premium: "Miembro Premium", acc_free: "…¡uy, no! aquí todo es gratis 😄" });
 })();

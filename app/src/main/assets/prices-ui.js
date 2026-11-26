@@ -32,9 +32,17 @@ function getJSON(url) {
 function savedPos() { const p = lsGet(POS_KEY, null); return p && Date.now() - p.t < 6 * 3600e3 ? p : null; }
 function locate() {
   return new Promise((ok, ko) => {
-    if (!navigator.geolocation) return ko(new Error("geo"));
+    // Sans position, on se repère avec le code postal des options (Base adresse nationale)
+    const byZip = e => {
+      const zip = (settings.zip || "").trim(); if (!/^\d{5}$/.test(zip)) return ko(e);
+      fetch("https://api-adresse.data.gouv.fr/search/?q=" + zip + "&type=municipality&limit=1").then(r => r.json()).then(j => {
+        const f = j.features && j.features[0]; if (!f) return ko(e);
+        const v = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], acc: 5000, t: Date.now(), zip }; ok(v);
+      }).catch(() => ko(e));
+    };
+    if (!navigator.geolocation) return byZip(new Error("geo"));
     navigator.geolocation.getCurrentPosition(p => { const v = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, t: Date.now() }; lsSet(POS_KEY, v); ok(v); },
-      e => ko(e), { enableHighAccuracy: false, timeout: 15000, maximumAge: 10 * 60e3 });
+      e => byZip(e), { enableHighAccuracy: false, timeout: 15000, maximumAge: 10 * 60e3 });
   });
 }
 function distKm(a, b) {
