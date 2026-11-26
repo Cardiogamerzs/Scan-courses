@@ -34,6 +34,12 @@ jobs:
         if: steps.offcache.outputs.cache-hit != 'true'
         run: python3 tools/fetch-off-csv.py offdata 50000 8000 15000
 
+      # Compositions absentes de l'export CSV (remplies dans une autre langue) : complétées depuis la base complète
+      - name: Compléter les listes d'ingrédients
+        run: |
+          python3 -m pip install --quiet --user --break-system-packages duckdb
+          python3 tools/fill-ingredients.py offdata/food.jsonl
+
       - name: Construire la base hors ligne de l'appli
         run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl && node tools/diag-cosmetics.mjs && node tools/pack-db.mjs
 
@@ -82,13 +88,13 @@ jobs:
       - name: Renommer l'APK
         run: cp app/build/outputs/apk/debug/app-debug.apk Sovee.apk
 
-      # Version Play Store (AAB signé avec la clé d'upload), seulement si la clé est dans les secrets
+      # Version Play Store (AAB signé avec la clé d'upload), seulement si les 2 secrets SOVEE_KEYSTORE_BASE64 et SOVEE_KEYSTORE_PASSWORD existent
       - name: Fabriquer l'AAB pour le Play Store
         env:
           KS_B64: ${{ secrets.SOVEE_KEYSTORE_BASE64 }}
           SOVEE_KEYSTORE_PASSWORD: ${{ secrets.SOVEE_KEYSTORE_PASSWORD }}
-          SOVEE_KEY_ALIAS: ${{ secrets.SOVEE_KEY_ALIAS }}
-          SOVEE_KEY_PASSWORD: ${{ secrets.SOVEE_KEY_PASSWORD }}
+          SOVEE_KEY_PASSWORD: ${{ secrets.SOVEE_KEYSTORE_PASSWORD }}
+          SOVEE_KEY_ALIAS: sovee-upload
         run: |
           if [ -z "$KS_B64" ]; then echo "Pas de clé d'upload dans les secrets : AAB non fabriqué."; exit 0; fi
           echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"

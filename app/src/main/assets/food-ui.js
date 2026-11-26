@@ -523,6 +523,15 @@ function healthTab(body, p, sc) {
     });
     body.append(l);
   } else body.append(h("p", { className: "sub", textContent: p.ing ? t("f_noWatch") : t("f_noWatchUnk") }));
+  // Composition inconnue partout : la lire en photo sur l'emballage (ou la taper)
+  if (!p.ing || p.ing === "x") {
+    const b = h("button", { type: "button", className: "btn primary full", textContent: "📷 " + t("u_photoInci") });
+    b.onclick = () => inciEditor(p.code, p.name, "", false, p.brand, true);
+    body.append(h("div", { className: "row col" }, b), h("p", { className: "notice", textContent: t("u_foodIngHelp") }));
+  } else if (p.userIng) {
+    const ed = h("button", { type: "button", className: "linkbtn", textContent: t("u_edit") }); ed.onclick = () => inciEditor(p.code, p.name, p.ing, false, p.brand, true);
+    body.append(h("div", { className: "userinci" }, h("span", { textContent: "✍️ " + t("u_yourInci") }), ed));
+  }
 
   // Grossesse / bébés
   const verdictRow = (title, r) => {
@@ -657,12 +666,12 @@ function searchInciWeb(p) {
   const q = [p.brand, p.name].filter(Boolean).join(" ") || p.code;
   ctx.openUrl("https://www.google.com/search?q=" + encodeURIComponent(q + " ingrédients INCI composition"));
 }
-function inciEditor(code, name, initial, askName, brand) {
+function inciEditor(code, name, initial, askName, brand, food) {
   openSheet(sh => {
     sh.append(h("h2", { textContent: t("u_inciTitle") }), h("p", { className: "sub", textContent: t("u_inciHelp") }));
     let nameIn = null;
     if (askName) { nameIn = h("input", { type: "text", value: name || "", placeholder: t("u_namePh") }); sh.append(h("div", { className: "f" }, nameIn)); }
-    const ta = h("textarea", { rows: 7, value: initial || "", placeholder: "Aqua, Glycerin, Cetearyl Alcohol, Parfum…" });
+    const ta = h("textarea", { rows: 7, value: initial || "", placeholder: food ? "Sucre, huile de palme, noisettes 13 %, lait écrémé en poudre, émulsifiant : lécithines (E322)…" : "Aqua, Glycerin, Cetearyl Alcohol, Parfum…" });
     const status = h("p", { className: "sub" });
     if (NATIVE && NATIVE.ocrPhoto) {
       const cam = h("button", { type: "button", className: "btn primary", textContent: "📷 " + t("u_takePhoto") });

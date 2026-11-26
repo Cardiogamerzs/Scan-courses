@@ -104,7 +104,8 @@ function normFood(r) {
       fv: num(nu["fruits-vegetables-nuts_100g"] ?? nu["fruits-vegetables-nuts-estimate_100g"] ?? nu["fruits-vegetables-legumes-estimate-from-ingredients_100g"] ?? nu["fruits-vegetables-nuts-estimate-from-ingredients_100g"]) },
     add: r.additives_tags || [], all: r.allergens_tags || [], tr: r.traces_tags || [], ana: r.ingredients_analysis_tags || [],
     lab: r.labels_tags || [], ori: r.origins_tags || [], pack: r.packaging_tags || [],
-    ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || "").slice(0, 1500), img: r.image_front_small_url || "",
+    ing: (r.ingredients_text_fr || r.ingredients_text || r.ingredients_text_en || r.ingredients_text_it || r.ingredients_text_es || r.ingredients_text_de || r.ingredients_text_nl || r.ingredients_text_pt
+      || ((r.ingredients_tags || []).length > 1 ? r.ingredients_tags.map(t => t.replace(/^[a-z]{2}:/, "").replace(/-/g, " ")).join(", ") : "")).slice(0, 1500), img: r.image_front_small_url || "",
     st: storeKeys((r.stores || "") + "," + (r.stores_tags || []).join(",") + "," + (r.brands || ""))
   };
   p.drink = R.isDrink(p) ? 1 : 0;
@@ -181,7 +182,7 @@ async function loadIndex(type) {
 }
 
 /* ---------- En ligne (si réseau) ---------- */
-const FOOD_FIELDS = "code,product_name_fr,product_name,generic_name_fr,brands,quantity,categories_tags,pnns_groups_1,pnns_groups_2,nutriscore_grade,nutriscore_score,nova_group,ecoscore_grade,ecoscore_score,environmental_score_grade,environmental_score_score,nutriments,additives_tags,allergens_tags,traces_tags,ingredients_analysis_tags,labels_tags,origins_tags,packaging_tags,ingredients_text_fr,ingredients_text,ingredients_text_en,image_front_small_url";
+const FOOD_FIELDS = "code,product_name_fr,product_name,generic_name_fr,brands,quantity,categories_tags,pnns_groups_1,pnns_groups_2,nutriscore_grade,nutriscore_score,nova_group,ecoscore_grade,ecoscore_score,environmental_score_grade,environmental_score_score,nutriments,additives_tags,allergens_tags,traces_tags,ingredients_analysis_tags,labels_tags,origins_tags,packaging_tags,ingredients_text_fr,ingredients_text,ingredients_text_en,ingredients_text_it,ingredients_text_es,ingredients_text_de,ingredients_text_nl,ingredients_text_pt,ingredients_tags,image_front_small_url";
 const BEAUTY_FIELDS = "code,product_name,product_name_fr,brands,quantity,categories_tags,ingredients_tags,ingredients_text,ingredients_text_fr,ingredients_text_en,labels_tags,image_front_small_url";
 async function withTimeout(url, ms) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
@@ -253,6 +254,12 @@ function asBeauty(p) {
 const INCI_KEY = "sc-inci";
 function userInci() { try { return JSON.parse(localStorage.getItem(INCI_KEY)) || {}; } catch (e) { return {}; } }
 function setUserInci(code, text, name) { const m = userInci(); if (text) m[code] = { t: text, n: name || "" }; else delete m[code]; try { localStorage.setItem(INCI_KEY, JSON.stringify(m)); } catch (e) {} }
+// Codes E cités dans une liste d'ingrédients (« émulsifiant : E322 », « E 150d », « E471 ») → additives_tags
+function eCodes(txt) {
+  const out = new Set();
+  for (const m of (txt || "").matchAll(/\bE\s?-?(\d{3,4})\s?([a-f])?(?:\s?\(?(i{1,3}|iv|v|vi)\)?)?(?![\d])/gi)) out.add("en:e" + m[1] + (m[2] || "").toLowerCase() + (m[3] || "").toLowerCase());
+  return [...out];
+}
 function finish(p, code) {
   if (!p) {
     const u = userInci()[code];
@@ -260,6 +267,11 @@ function finish(p, code) {
   }
   if (looksNonFood(p)) p = asBeauty(p);
   if (p.type === "beauty") { const u = userInci()[p.code] || userInci()[code]; if (u) p = { ...p, inci: u.t, userInci: true }; }
+  // Aliment sans composition : celle photographiée ou tapée par l'utilisateur (additifs repérés dans le texte)
+  if (p.type === "food" && (!p.ing || p.ing === "x")) {
+    const u = userInci()[p.code] || userInci()[code];
+    if (u) p = { ...p, ing: u.t, userIng: true, add: (p.add || []).length ? p.add : eCodes(u.t) };
+  }
   return p;
 }
 async function foodOnline(code) {
@@ -288,6 +300,11 @@ async function findProduct(code) {
   if (p && looksNonFood(p)) { const b = await beautyOnline(code); if (b && b.inci) { seenPut(b); p = b; } }
   // Cosmétique sans composition dans la base du téléphone : on regarde si la fiche en ligne en a une (autre langue)
   if (p && p.type === "beauty" && !p.inci && !p.fromFood) { const b = await beautyOnline(code); if (b && b.inci) { seenPut(b); p = b; } }
+  // Aliment sans composition dans la base du téléphone (souvent remplie dans une autre langue) : fiche en ligne
+  if (p && p.type === "food" && (!p.ing || p.ing === "x")) {
+    const f = await foodOnline(code);
+    if (f && f.ing) p = { ...p, ing: f.ing, add: (p.add || []).length ? p.add : f.add, ana: (p.ana || []).length ? p.ana : f.ana, all: (p.all || []).length ? p.all : f.all, tr: (p.tr || []).length ? p.tr : f.tr };
+  }
   if (p && looksFood(p)) { const f = await foodOnline(code); if (f && !looksNonFood(f)) { seenPut(f); p = f; } }
   // Nourriture pour animaux
   if (p && p.type === "food" && (p.cats || []).some(c => /pet-food|cat-food|dog-food/.test(c))) { const q = await petOnline(code); p = q || Object.assign(normPet({ code, product_name: p.name, brands: p.brand, categories_tags: p.cats, ingredients_text: p.ing, image_front_small_url: p.img }), {}); }
@@ -309,5 +326,5 @@ async function searchLocal(q, limit = 60) {
   return out;
 }
 
-root.FoodData = { normPet, petOnline, STORES, storeKeys, setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
+root.FoodData = { eCodes, normPet, petOnline, STORES, storeKeys, setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
 })(typeof window !== "undefined" ? window : globalThis);
