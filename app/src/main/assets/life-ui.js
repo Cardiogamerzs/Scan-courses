@@ -275,7 +275,7 @@ function normRecall(r) {
   const img = String(r.liens_vers_les_images || r.lien_vers_les_images || "").split(/[\s|,]+/).find(u => /^https:\/\//.test(u)) || "";
   return { id: String(r.numero_fiche || r.reference_fiche || r.id || r.rappel_guid || (r.libelle + r.date_publication)), gtin: String(r.gtin || ""), name: r.libelle || r.modeles_ou_references || r.nom_de_la_marque_du_produit || "", brand: r.marque_produit || r.nom_de_la_marque_du_produit || "",
     date: String(r.date_publication || "").slice(0, 10), why: r.motif_rappel || r.motif_du_rappel || "", risk: r.risques_encourus || r.risques_encourus_par_le_consommateur || "", todo: r.conduites_a_tenir_par_le_consommateur || "",
-    shops: r.distributeurs || "", end: r.date_de_fin_de_la_procedure_de_rappel || r.date_fin_commercialisation || "", lots: r.identification_des_produits || "", img, cat: r.categorie_produit || r.categorie_de_produit || "" };
+    shops: r.distributeurs || "", end: r.date_de_fin_de_la_procedure_de_rappel || "", lots: String(r.identification_produits || r.identification_des_produits || "").replace(/\$/g, " · ").slice(0, 400), health: r.preconisations_sanitaires || "", img, cat: r.categorie_produit || r.categorie_de_produit || "" };
 }
 function myCodes() {
   const s = new Set();
@@ -303,7 +303,7 @@ async function fetchRecent() {
 }
 function recallCard(x, mine) {
   const det = h("div", { className: "ndet" });
-  [["⚠️", t("rc_why"), x.why], ["🩺", t("rc_risk"), x.risk], ["👉", t("rc_todo"), x.todo], ["🏪", t("rc_shops"), x.shops], ["🔢", t("rc_lots"), x.lots], ["📆", t("rc_end"), x.end && String(x.end).slice(0, 10)]]
+  [["⚠️", t("rc_why"), x.why], ["🩺", t("rc_risk"), x.risk], ["💡", t("rc_health"), x.health], ["👉", t("rc_todo"), x.todo], ["🏪", t("rc_shops"), x.shops], ["🔢", t("rc_lots"), x.lots], ["📆", t("rc_end"), x.end && String(x.end).slice(0, 10)]]
     .forEach(([i, l, v]) => { if (v) det.append(h("small", {}, h("b", { textContent: i + " " + l + " : " }), String(v))); });
   det.hidden = !mine;
   const im = h("div", { className: "pimg" }); if (x.img) im.style.backgroundImage = "url('" + x.img.replace(/'/g, "%27") + "')"; else im.textContent = "🚨";

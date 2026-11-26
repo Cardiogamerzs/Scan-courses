@@ -17,17 +17,15 @@ ws.onmessage = ev => {
   if (m.method === "Runtime.exceptionThrown") { const d = m.params.exceptionDetails; report.errors.push((d.exception && d.exception.description || d.text) + " @" + d.url + ":" + d.lineNumber); }
   if (m.method === "Runtime.consoleAPICalled" && ["error", "warning"].includes(m.params.type)) report.console.push(m.params.type + ": " + m.params.args.map(a => a.value ?? a.description).join(" "));
 };
-const send = (method, params = {}) => new Promise(ok => { const id = ++seq; pend[id] = ok; ws.send(JSON.stringify({ id, method, params })); });
-const ev = async (expr, ms = 0) => { const r = await send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true }); if (ms) await sleep(ms); if (r.result && r.result.exceptionDetails) report.errors.push("eval: " + expr.slice(0, 60) + " → " + (r.result.exceptionDetails.exception || {}).description); return r.result && r.result.result ? r.result.result.value : undefined; };
+const send = (method, params = {}, ms = 40000) => new Promise(ok => { const id = ++seq; const tm = setTimeout(() => { delete pend[id]; report.errors.push("timeout CDP: " + method); ok({}); }, ms); pend[id] = m => { clearTimeout(tm); ok(m); }; ws.send(JSON.stringify({ id, method, params })); });
+const ev = async (expr, ms = 0) => { const r = await send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true }, 240000); if (ms) await sleep(ms); if (r.result && r.result.exceptionDetails) report.errors.push("eval: " + expr.slice(0, 60) + " → " + (r.result.exceptionDetails.exception || {}).description); return r.result && r.result.result ? r.result.result.value : undefined; };
 let shotN = 10;
 const shot = async name => {
-  const m = await send("Page.getLayoutMetrics");
-  const cs = (m.result && (m.result.cssContentSize || m.result.contentSize)) || { width: 400, height: 900 };
-  const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { x: 0, y: 0, width: cs.width, height: Math.min(cs.height, 4000), scale: 1 } });
-  if (r.result && r.result.data) fs.writeFileSync(OUT + "/" + (shotN++) + "-" + name + ".png", Buffer.from(r.result.data, "base64"));
+  const r = await send("Page.captureScreenshot", { format: "jpeg", quality: 70 });
+  if (r.result && r.result.data) fs.writeFileSync(OUT + "/" + (shotN++) + "-" + name + ".jpg", Buffer.from(r.result.data, "base64"));
   else { adb("shell screencap -p /sdcard/s.png"); adb("pull /sdcard/s.png " + OUT + "/" + (shotN++) + "-" + name + ".png"); }
 };
-const step = async (name, fn) => { const t0 = Date.now(); try { await fn(); report.steps.push(name + " ✓ " + (Date.now() - t0) + " ms"); } catch (e) { report.steps.push(name + " ✗ " + e.message); } };
+const step = async (name, fn) => { const t0 = Date.now(); console.log("ÉTAPE " + name); try { await fn(); report.steps.push(name + " ✓ " + (Date.now() - t0) + " ms"); } catch (e) { report.steps.push(name + " ✗ " + e.message); } fs.writeFileSync(OUT + "/report.json", JSON.stringify(report, null, 2)); };
 const crawlSrc = fs.readFileSync("tools/crawl.js", "utf8");
 const setSettings = async patch => { await ev(`(()=>{const s=JSON.parse(localStorage.getItem('sc-settings')||'{}');Object.assign(s,${JSON.stringify(patch)});localStorage.setItem('sc-settings',JSON.stringify(s));location.reload();})()`); await sleep(7000); await send("Runtime.enable"); };
 const click = (sel, txt) => ev(`(()=>{const b=[...document.querySelectorAll(${JSON.stringify(sel)})].find(x=>x.innerText.includes(${JSON.stringify(txt)}));if(b){b.click();return true}return false})()`);

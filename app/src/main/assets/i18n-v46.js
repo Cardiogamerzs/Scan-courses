@@ -39,7 +39,7 @@ add("fr", {
   ag_pick: "Choisis au moins un ingrédient 👆", ag_found: n => n + " recette" + (n > 1 ? "s" : ""), ag_clear: "Tout décocher", ag_miss: l => "Il manque : " + l, ag_all: "Tu as tout ! 🎉",
   // Rappels produits
   rc_mine: "Mes produits", rc_recent: "Derniers rappels alimentaires", rc_none: n => "Aucun rappel pour tes " + n + " produits scannés",
-  rc_offline: "Pas de connexion : impossible de vérifier pour le moment.", rc_why: "Motif", rc_risk: "Risques", rc_todo: "Que faire", rc_shops: "Magasins", rc_lots: "Lots concernés", rc_end: "Fin du rappel",
+  rc_offline: "Pas de connexion : impossible de vérifier pour le moment.", rc_why: "Motif", rc_risk: "Risques", rc_health: "Conseils santé", rc_todo: "Que faire", rc_shops: "Magasins", rc_lots: "Lots concernés", rc_end: "Fin du rappel",
   rc_source: "Source : RappelConso, le site officiel des rappels de produits (DGCCRF, ministère de l'Économie). Vérification automatique deux fois par jour quand l'appli est ouverte.",
   rc_alert: "Ce produit fait l'objet d'un rappel", rc_home: n => n > 1 ? n + " produits que tu as scannés sont rappelés" : "Un produit que tu as scanné est rappelé",
   // Salle de bain
@@ -110,7 +110,7 @@ add("en", {
   ag_help: "Tick what's left in your fridge and cupboards: Sovée finds recipes that use them.", ag_searchPh: "Search an ingredient (e.g. courgette)…",
   ag_pick: "Pick at least one ingredient 👆", ag_found: n => n + " recipe" + (n > 1 ? "s" : ""), ag_clear: "Untick all", ag_miss: l => "Missing: " + l, ag_all: "You have everything! 🎉",
   rc_mine: "My products", rc_recent: "Latest food recalls", rc_none: n => "No recall for your " + n + " scanned products",
-  rc_offline: "No connection: can't check right now.", rc_why: "Reason", rc_risk: "Risks", rc_todo: "What to do", rc_shops: "Shops", rc_lots: "Batches", rc_end: "Recall ends",
+  rc_offline: "No connection: can't check right now.", rc_why: "Reason", rc_risk: "Risks", rc_health: "Health advice", rc_todo: "What to do", rc_shops: "Shops", rc_lots: "Batches", rc_end: "Recall ends",
   rc_source: "Source: RappelConso, the official French product recall site (DGCCRF). Checked automatically twice a day when the app is open.",
   rc_alert: "This product has been recalled", rc_home: n => n > 1 ? n + " products you scanned have been recalled" : "A product you scanned has been recalled",
   ba_title: "Your bathroom", ba_avg: n => "Average score: " + n + "/100", ba_count: n => n + " product" + (n > 1 ? "s" : ""), ba_scan: "Scan a cosmetic",
@@ -176,7 +176,7 @@ add("es", {
   ag_help: "Marca lo que te queda en la nevera y la despensa: Sovée encuentra recetas que lo usan.", ag_searchPh: "Buscar un ingrediente (ej. calabacín)…",
   ag_pick: "Elige al menos un ingrediente 👆", ag_found: n => n + " receta" + (n > 1 ? "s" : ""), ag_clear: "Desmarcar todo", ag_miss: l => "Falta: " + l, ag_all: "¡Lo tienes todo! 🎉",
   rc_mine: "Mis productos", rc_recent: "Últimas alertas alimentarias", rc_none: n => "Ninguna alerta para tus " + n + " productos escaneados",
-  rc_offline: "Sin conexión: no se puede comprobar ahora.", rc_why: "Motivo", rc_risk: "Riesgos", rc_todo: "Qué hacer", rc_shops: "Tiendas", rc_lots: "Lotes", rc_end: "Fin de la alerta",
+  rc_offline: "Sin conexión: no se puede comprobar ahora.", rc_why: "Motivo", rc_risk: "Riesgos", rc_health: "Consejos de salud", rc_todo: "Qué hacer", rc_shops: "Tiendas", rc_lots: "Lotes", rc_end: "Fin de la alerta",
   rc_source: "Fuente: RappelConso, el sitio oficial francés de retirada de productos (DGCCRF). Comprobación automática dos veces al día con la app abierta.",
   rc_alert: "Este producto ha sido retirado", rc_home: n => n > 1 ? n + " productos que escaneaste han sido retirados" : "Un producto que escaneaste ha sido retirado",
   ba_title: "Tu baño", ba_avg: n => "Nota media: " + n + "/100", ba_count: n => n + " producto" + (n > 1 ? "s" : ""), ba_scan: "Escanear un cosmético",
