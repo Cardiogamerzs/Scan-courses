@@ -315,7 +315,7 @@ add("es", {
 add("fr", {
   ad_risk: "À risque", ad_limited: "Risque limité", ad_safe: "Sans risque", ad_unk: "Non évalué", ad_risk1: "À risque", ad_limited1: "Risque limité", ad_safe1: "Sans risque", ad_unk1: "Non évalué",
   ad_show: "Afficher les additifs", ad_hasRisk: "Présence d'additifs à risque", ad_hasLimited: "Additifs à risque limité", ad_listTitle: "Liste des additifs",
-  ad_notice: "Classement d'après les réévaluations de l'EFSA, le CIRC, l'ANSES et les études de la cohorte NutriNet-Santé. Un additif autorisé reste légal : « à risque » signifie qu'il vaut mieux le limiter.",
+  ad_notice: "Classement d'après les réévaluations de l'EFSA, le CIRC, l'ANSES et les études de la cohorte NutriNet-Santé (Inserm). Un additif autorisé reste légal : « à risque » signifie qu'il vaut mieux le limiter.",
   ad_risks: "Risques potentiels associés", ad_noRisk: "Aucun risque identifié aux doses autorisées.", ad_unkRisk: "Cet additif n'est pas encore décrit dans la base de l'appli.", ad_unkWhy: "Pas encore de fiche détaillée pour cet additif.", ad_more: "En savoir plus sur internet",
   tg_cancerRisk: "Lien avec des cancers (études)", tg_child: "Attention des enfants", tg_gut: "Microbiote / intestin", tg_heart: "Cœur et vaisseaux", tg_diabetes: "Diabète de type 2", tg_lax: "Effet laxatif", tg_nano: "Nanoparticules", tg_alu: "Aluminium",
   f_watch: "À surveiller", f_noWatch: "Rien à signaler dans la composition 👍", f_noWatchUnk: "Liste d'ingrédients inconnue : impossible de tout vérifier.", f_per100x: u => "Pour 100 " + u,
@@ -332,7 +332,7 @@ add("fr", {
 add("en", {
   ad_risk: "Risky", ad_limited: "Limited risk", ad_safe: "No risk", ad_unk: "Not assessed", ad_risk1: "Risky", ad_limited1: "Limited risk", ad_safe1: "No risk", ad_unk1: "Not assessed",
   ad_show: "Show additives", ad_hasRisk: "Contains risky additives", ad_hasLimited: "Limited-risk additives", ad_listTitle: "Additives",
-  ad_notice: "Rated from EFSA re-evaluations, IARC, ANSES and NutriNet-Santé cohort studies. Details are written in French.",
+  ad_notice: "Rated from EFSA re-evaluations, IARC, ANSES and NutriNet-Santé cohort studies (Inserm). Details are written in French.",
   ad_risks: "Potential risks", ad_noRisk: "No risk identified at authorised doses.", ad_unkRisk: "This additive isn't described in the app yet.", ad_unkWhy: "No detailed sheet for this additive yet.", ad_more: "Learn more online",
   tg_cancerRisk: "Linked to cancers (studies)", tg_child: "Children's attention", tg_gut: "Gut / microbiota", tg_heart: "Heart and vessels", tg_diabetes: "Type 2 diabetes", tg_lax: "Laxative effect", tg_nano: "Nanoparticles", tg_alu: "Aluminium",
   f_watch: "To watch", f_noWatch: "Nothing to report in the ingredients 👍", f_noWatchUnk: "Ingredient list unknown: can't check everything.", f_per100x: u => "Per 100 " + u,
@@ -349,7 +349,7 @@ add("en", {
 add("es", {
   ad_risk: "De riesgo", ad_limited: "Riesgo limitado", ad_safe: "Sin riesgo", ad_unk: "No evaluado", ad_risk1: "De riesgo", ad_limited1: "Riesgo limitado", ad_safe1: "Sin riesgo", ad_unk1: "No evaluado",
   ad_show: "Ver los aditivos", ad_hasRisk: "Contiene aditivos de riesgo", ad_hasLimited: "Aditivos de riesgo limitado", ad_listTitle: "Aditivos",
-  ad_notice: "Clasificación según EFSA, IARC, ANSES y la cohorte NutriNet-Santé. Las fichas están en francés.",
+  ad_notice: "Clasificación según EFSA, IARC, ANSES y la cohorte NutriNet-Santé (Inserm). Las fichas están en francés.",
   ad_risks: "Riesgos potenciales", ad_noRisk: "Ningún riesgo identificado en las dosis autorizadas.", ad_unkRisk: "Este aditivo aún no está descrito en la app.", ad_unkWhy: "Aún no hay ficha detallada para este aditivo.", ad_more: "Más información en internet",
   tg_cancerRisk: "Relacionado con cánceres (estudios)", tg_child: "Atención de los niños", tg_gut: "Intestino / microbiota", tg_heart: "Corazón y vasos", tg_diabetes: "Diabetes tipo 2", tg_lax: "Efecto laxante", tg_nano: "Nanopartículas", tg_alu: "Aluminio",
   f_watch: "A vigilar", f_noWatch: "Nada que señalar en los ingredientes 👍", f_noWatchUnk: "Lista de ingredientes desconocida.", f_per100x: u => "Por 100 " + u,

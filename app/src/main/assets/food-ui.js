@@ -349,7 +349,7 @@ function foodAdditives(p) {
     const d = A && A.get(k);
     if (d) return Object.assign(d, { band: A.band(d.risk) });
     const old = R.additivesOf({ add: [k] })[0] || {};
-    return { code: k.toUpperCase(), name: old.name || "", fn: "", fnName: "", fnDesc: "", risk: old.risk && old.risk !== "none" ? old.risk : "unk", tags: old.tags || [], why: old.note || t("ad_unkWhy"), src: [], band: A ? A.band(old.risk && old.risk !== "none" ? old.risk : "unk") : "unk" };
+    return { code: (A && A.fmtCode ? A.fmtCode(k) : k.toUpperCase()), name: old.name || "", fn: "", fnName: "", fnDesc: "", risk: old.risk && old.risk !== "none" ? old.risk : "unk", tags: old.tags || [], why: old.note || t("ad_unkWhy"), src: [], band: A ? A.band(old.risk && old.risk !== "none" ? old.risk : "unk") : "unk" };
   }).sort((a, b) => order[a.band] - order[b.band]);
 }
 const TAGS = { cancer1: ["☢️", "tg_cancer1"], cancer2A: ["☢️", "tg_cancer2A"], cancer2B: ["☢️", "tg_cancer2B"], cancerRisk: ["🎗️", "tg_cancerRisk"], ed: ["🧬", "tg_ed"], child: ["🧒", "tg_child"], allergen: ["🌼", "tg_allergen"],
