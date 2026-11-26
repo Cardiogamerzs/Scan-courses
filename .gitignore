@@ -14,3 +14,4 @@ offdata/
 tr-strings.json
 tr-en-review.json
 tools/tr-cache/
+__pycache__/
