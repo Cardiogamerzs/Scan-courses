@@ -422,3 +422,4 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,
 .altcard small{color:var(--muted);font-size:12px}
 .altimg{width:96px;height:96px;border-radius:14px;background:#fff center/contain no-repeat;background-origin:content-box;padding:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:36px}
 .altsc{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-top:2px}
+.vivid .logo b{background:none;color:var(--fg)}

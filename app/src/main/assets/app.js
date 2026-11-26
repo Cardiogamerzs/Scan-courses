@@ -50,6 +50,28 @@ const WALLS = {
   p_fruits:   { base: "lemon", wall: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90"><circle cx="20" cy="22" r="9" fill="#ffd6a8"/><path d="M20 13q3-6 8-5" stroke="#9bd18c" stroke-width="3" fill="none"/><circle cx="66" cy="62" r="7" fill="#ffc2c2"/><circle cx="74" cy="66" r="7" fill="#ffc2c2"/><path d="M70 56l3-8" stroke="#9bd18c" stroke-width="2.5"/></svg>') + " 0 0/90px 90px, #fffaf0", bar: "#fffaf0" },
   p_stars:    { base: "night", wall: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><circle cx="12" cy="15" r="1.4" fill="#ffffff" opacity=".55"/><circle cx="48" cy="40" r="1" fill="#ffffff" opacity=".4"/><path d="M58 10l1.5 3.5 3.5 1.5-3.5 1.5-1.5 3.5-1.5-3.5-3.5-1.5 3.5-1.5z" fill="#ffe08a" opacity=".6"/><circle cx="25" cy="58" r="1.2" fill="#ffffff" opacity=".5"/></svg>') + " 0 0/70px 70px, #121630", bar: "#121630" }
 };
+
+/* Couleurs vives et motifs colorés (texte clair, cartes teintées) */
+function vivid(bg, surface, light) {
+  return light ? { bg, surface, fg: "#1b1d26", muted: "#5b5a4c", line: "rgba(0,0,0,.12)", dark: false, vivid: true }
+    : { bg, surface, fg: "#ffffff", muted: "rgba(255,255,255,.78)", line: "rgba(255,255,255,.2)", dark: true, vivid: true };
+}
+function vwall(bg, surface, svg, size, light) { const th = vivid(bg, surface, light); return { th, wall: svg ? svgUrl(svg) + " 0 0/" + size + ", " + bg : bg, bar: bg }; }
+const W = "#ffffff";
+Object.assign(WALLS, {
+  v_blue: vwall("#1d4ed8", "#1e3a8a"), v_red: vwall("#dc2626", "#7f1d1d"), v_green: vwall("#16a34a", "#14532d"), v_orange: vwall("#ea580c", "#7c2d12"),
+  v_violet: vwall("#7c3aed", "#4c1d95"), v_pink: vwall("#db2777", "#831843"), v_teal: vwall("#0d9488", "#134e4a"), v_yellow: vwall("#facc15", "#fffbea", null, null, true), v_black: vwall("#0a0a0a", "#1f1f1f"),
+  vp_waves: vwall("#1d4ed8", "#1e3a8a", '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="28"><path d="M0 14q10-12 20 0t20 0 20 0 20 0" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="3.5"/></svg>', "80px 28px"),
+  vp_hearts: vwall("#dc2626", "#7f1d1d", '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><path transform="translate(8 8) scale(.14)" d="' + HEART_P + '" fill="#fff" fill-opacity=".2"/><path transform="translate(38 36) scale(.1)" d="' + HEART_P + '" fill="#fff" fill-opacity=".14"/></svg>', "60px 60px"),
+  vp_dots: vwall("#16a34a", "#14532d", '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30"><circle cx="8" cy="8" r="4" fill="#fff" fill-opacity=".22"/><circle cx="23" cy="23" r="4" fill="#fff" fill-opacity=".22"/></svg>', "30px 30px"),
+  vp_stripes: vwall("#ea580c", "#7c2d12", '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M-6 6l12-12M0 24L24 0M18 30l12-12" stroke="#fff" stroke-opacity=".2" stroke-width="5"/></svg>', "24px 24px"),
+  vp_stars: vwall("#7c3aed", "#4c1d95", '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path d="M16 6l2.6 6 6.4.6-4.8 4.2 1.4 6.2L16 19.8 10.4 23l1.4-6.2L7 12.6l6.4-.6z" fill="#fff" fill-opacity=".25"/><circle cx="48" cy="44" r="2.5" fill="#fff" fill-opacity=".3"/><circle cx="40" cy="14" r="1.6" fill="#fff" fill-opacity=".3"/></svg>', "64px 64px"),
+  vp_check: vwall("#db2777", "#831843", '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="20" height="20" fill="#fff" fill-opacity=".14"/><rect x="20" y="20" width="20" height="20" fill="#fff" fill-opacity=".14"/></svg>', "40px 40px"),
+  vp_zigzag: vwall("#0d9488", "#134e4a", '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><path d="M0 15l10-10 10 10 10-10 10 10" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="3"/></svg>', "40px 20px"),
+  vp_polka: vwall("#facc15", "#fffbea", '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34"><circle cx="9" cy="9" r="5" fill="#fff" fill-opacity=".45"/><circle cx="26" cy="26" r="5" fill="#fff" fill-opacity=".45"/></svg>', "34px 34px", true),
+  vp_confetti: vwall("#0a0a0a", "#1f1f1f", '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect x="10" y="12" width="8" height="3" rx="1.5" fill="#f43f5e" transform="rotate(30 14 13)"/><rect x="50" y="20" width="8" height="3" rx="1.5" fill="#facc15" transform="rotate(-20 54 21)"/><circle cx="30" cy="50" r="2.5" fill="#22c55e"/><rect x="60" y="60" width="8" height="3" rx="1.5" fill="#3b82f6" transform="rotate(60 64 61)"/><circle cx="70" cy="8" r="2" fill="#a855f7"/><circle cx="12" cy="70" r="2" fill="#fb923c"/></svg>', "80px 80px"),
+  vp_grid: vwall("#1e40af", "#172554", '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><path d="M32 0H0v32" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="2"/></svg>', "32px 32px")
+});
 const THEME_ORDER = ["sand", "white", "rose", "peach", "coral", "lemon", "mint", "sage", "sky", "lavender", "night", "ocean", "forest", "plum", "auto"];
 const WALL_ORDER = Object.keys(WALLS);
 const PHOTO_KEY = "sc-wall-photo";
@@ -60,7 +82,7 @@ function resolveTheme(name) {
       return Object.assign({}, base, { wall: "linear-gradient(" + veil + "," + veil + "), url(" + img + ") center/cover no-repeat", bar: base.bg }); }
     name = "sand";
   }
-  if (WALLS[name]) return Object.assign({}, THEMES[WALLS[name].base], { wall: WALLS[name].wall, bar: WALLS[name].bar });
+  if (WALLS[name]) return Object.assign({}, WALLS[name].th || THEMES[WALLS[name].base], { wall: WALLS[name].wall, bar: WALLS[name].bar });
   if (name === "auto" || !THEMES[name]) {
     const dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
     return THEMES[name] || (dark ? THEMES.night : THEMES.sand);
@@ -74,6 +96,7 @@ function applyTheme(name) {
   r.setProperty("--accent", th.dark ? "#ff6b4a" : "#ff5a36"); r.setProperty("--accent-fg", th.dark ? "#14161f" : "#ffffff");
   r.setProperty("--scrim", th.dark ? "rgba(0,0,0,.65)" : "rgba(20,22,31,.55)");
   document.documentElement.style.colorScheme = th.dark ? "dark" : "light";
+  document.documentElement.classList.toggle("vivid", !!th.vivid);
   if (NATIVE && NATIVE.setBars) try { NATIVE.setBars(th.bar || th.bg, !th.dark); } catch (e) {}
 }
 function themeFor(view) {
@@ -569,7 +592,7 @@ function themePicker(title, current, onPick, withHome) {
   const label = h("p", { className: "sub", style: "margin:10px 0 0", textContent: themeName(current) });
   const swatch = (n, bg) => {
     const b = h("button", { type: "button", className: "sw" });
-    b.style.background = bg; b.style.backgroundSize = n.startsWith("p_") ? "auto" : "cover";
+    b.style.background = bg; b.style.backgroundSize = /^v?p_/.test(n) ? "" : "cover";
     b.setAttribute("aria-label", themeName(n)); b.title = themeName(n);
     b.setAttribute("aria-pressed", String(current === n)); b.onclick = () => onPick(n);
     return b;
@@ -579,7 +602,9 @@ function themePicker(title, current, onPick, withHome) {
   if (withHome) solids.unshift(["home", "repeating-linear-gradient(45deg," + resolveTheme(settings.theme).bg + " 0 6px,var(--surface) 6px 12px)"]);
   group(t("wp_colors"), solids);
   group(t("wp_gradients"), WALL_ORDER.filter(n => n.startsWith("g_")).map(n => [n, WALLS[n].wall]));
+  group(t("wp_vivid"), WALL_ORDER.filter(n => n.startsWith("v_")).map(n => [n, WALLS[n].wall]));
   group(t("wp_patterns"), WALL_ORDER.filter(n => n.startsWith("p_")).map(n => [n, WALLS[n].wall]));
+  group(t("wp_vpatterns"), WALL_ORDER.filter(n => n.startsWith("vp_")).map(n => [n, WALLS[n].wall]));
   // Ma photo (galerie du téléphone)
   const img = lsGet(PHOTO_KEY, null);
   const row = h("div", { className: "colors", style: "align-items:center" });
