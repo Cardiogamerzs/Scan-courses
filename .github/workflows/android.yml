@@ -37,6 +37,31 @@ jobs:
       - name: Construire la base hors ligne de l'appli
         run: node tools/build-db.mjs offdata/food.jsonl offdata/beauty.jsonl && node tools/diag-cosmetics.mjs && node tools/pack-db.mjs
 
+      # Anglais sur tout le contenu : traduction automatique, gardée en cache (seuls les nouveaux textes sont traduits)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            tools/tr-cache
+            ~/.cache/huggingface
+          key: tr-en-v1-${{ github.run_number }}
+          restore-keys: |
+            tr-en-v1-
+
+      - name: Traduire le contenu en anglais
+        run: |
+          node tools/extract-strings.mjs > tr-strings.json
+          N=$(python3 tools/translate.py tr-strings.json --count)
+          echo "Textes à traduire : $N"
+          if [ "$N" != "0" ]; then
+            pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+            pip install --quiet "transformers<5" sentencepiece sacremoses
+          fi
+          python3 tools/translate.py tr-strings.json app/src/main/assets/data/tr-en.jgz
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -58,13 +83,15 @@ jobs:
       - name: Publier dans les Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v4.6.${{ github.run_number }}
-          name: Sovée 4.6.${{ github.run_number }}
+          tag_name: v4.7.${{ github.run_number }}
+          name: Sovée 4.7.${{ github.run_number }}
           body: |
             Télécharge **Sovee.apk** sur ton téléphone Android et ouvre-le pour l'installer.
             Lien direct, toujours vers la dernière version :
             https://github.com/${{ github.repository }}/releases/latest/download/Sovee.apk
-          files: Sovee.apk
+          files: |
+            Sovee.apk
+            tr-en-review.json
           make_latest: true
 
   # Vérification sur un vrai Android (émulateur) : installation, lancement, parcours de tous les écrans

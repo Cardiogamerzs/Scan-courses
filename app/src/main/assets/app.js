@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "4.6";
+const APP_VERSION = "4.7";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
@@ -113,7 +113,7 @@ function themeFor(view) {
 let view = "home";
 const VIEWS = {};
 function go(v) { closeSheet(); view = v; applyTheme(themeFor(v === "options" ? optScope : v)); render(); window.scrollTo(0, 0); }
-function render() { document.documentElement.lang = settings.lang; const root = $("#app"); root.textContent = ""; $("#fabwrap").textContent = ""; VIEWS[view](root); if (ctx.scanFab) ctx.scanFab(view); }
+function render() { if (window.SoveeLang) window.SoveeLang(settings.lang); document.documentElement.lang = settings.lang; document.documentElement.classList.toggle("bigtext", !!settings.bigText); document.documentElement.classList.toggle("xmas", !!(window.SoveeXmas && window.SoveeXmas())); const root = $("#app"); root.textContent = ""; $("#fabwrap").textContent = ""; VIEWS[view](root); if (ctx.scanFab) ctx.scanFab(view); }
 window.onBack = () => {
   if ($("#layer").firstChild) { closeSheet(); return true; }
   if (view === "options") { go(optScope === "home" ? "home" : optScope); return true; }
@@ -731,7 +731,7 @@ async function copyText(text) {
 }
 function themePickerFor(scope) { return themePicker(t("moduleBg"), settings.modTheme[scope] || "home", v => { settings.modTheme[scope] = v; saveSettings(); applyTheme(themeFor(scope)); render(); }, true); }
 const ctx = { h, t, T, settings, saveSettings, go, header, openSheet, closeSheet, VIEWS, fab, lsGet, lsSet, toast, NATIVE, pickPhoto, decodeImage, view: () => view, render,
-  modules: [], backHooks: [], productHooks: [], homeHooks: [], homeOptions: [], homeBar: [], applyTheme: n => applyTheme(n), themeFor: v => themeFor(v), viewModule: {}, storesSheet, openUrl, copyText, codeSVG, loadScript, bright, deleteZone, themePickerFor, imgSrc };
+  modules: [], backHooks: [], productHooks: [], extraTabs: {}, tabsFor: (v, base) => base.concat((ctx.extraTabs[v] || []).map(x => [x[0], typeof x[1] === "function" ? x[1]() : x[1]])), extraView: (v, k) => ((ctx.extraTabs[v] || []).find(x => x[0] === k) || [])[2], homeHooks: [], homeOptions: [], homeBar: [], applyTheme: n => applyTheme(n), themeFor: v => themeFor(v), viewModule: {}, storesSheet, openUrl, copyText, codeSVG, loadScript, bright, deleteZone, themePickerFor, imgSrc };
 if (window.FoodUI) FoodUI.install(ctx);
 for (const ext of window.SC_EXT || []) ext(ctx);
 applyTheme(settings.theme);

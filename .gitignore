@@ -9,3 +9,8 @@ captures/
 # Base produits téléchargée au moment du build
 app/src/main/assets/data/
 offdata/
+
+# Traduction (générée au build)
+tr-strings.json
+tr-en-review.json
+tools/tr-cache/

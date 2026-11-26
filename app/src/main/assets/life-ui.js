@@ -219,7 +219,7 @@ function expiryView(body) {
     const n = daysLeft(x.date), col = n < 0 ? "#6b7280" : n <= 1 ? "#d93a2b" : n <= 3 ? "#e8900c" : "#1f9d55";
     const lab = n < 0 ? t("ex_past", -n) : n === 0 ? t("ex_d0") : n === 1 ? t("ex_d1s") : t("ex_dn", n);
     const del = h("button", { type: "button", className: "iconbtn", ariaLabel: t("ex_eaten"), textContent: "✓" });
-    del.onclick = () => { unschedule(x); expiry = expiry.filter(y => y !== x); saveExpiry(); ctx.render(); toast("👍 " + t("ex_eatenT")); };
+    del.onclick = () => { unschedule(x); expiry = expiry.filter(y => y !== x); saveExpiry(); if (ctx.track) ctx.track("eaten"); ctx.render(); toast("👍 " + t("ex_eatenT")); };
     const row = h("div", { className: "nrow" }, h("span", { className: "nico", textContent: n <= 1 ? "⏰" : "🥫" }), h("div", { className: "nmeta" }, h("b", { textContent: x.name }), h("small", { textContent: fmtDate(x.date) })), h("span", { className: "exday", style: "background:" + col, textContent: lab }), del);
     if (x.code) row.querySelector(".nmeta").onclick = () => ctx.openProduct(x.code);
     l.append(row);
@@ -340,9 +340,9 @@ let fTab = "dates";
 VIEWS.fridge = root => {
   const wrap = h("div", { className: "wrap" }); root.append(wrap);
   wrap.append(h("header", {}, header(t("modFridge"), { back: true })));
-  wrap.append(seg([["dates", "⏰ " + t("fr_dates")], ["gaspi", "🧊 " + t("fr_gaspi")], ["recalls", "🚨 " + t("fr_recalls")]], fTab, k => { fTab = k; go("fridge"); }));
+  wrap.append(seg(ctx.tabsFor("fridge", [["dates", "⏰ " + t("fr_dates")], ["gaspi", "🧊 " + t("fr_gaspi")], ["recalls", "🚨 " + t("fr_recalls")]]), fTab, k => { fTab = k; go("fridge"); }));
   const body = h("div", { style: "margin-top:12px" }); wrap.append(body);
-  ({ dates: expiryView, gaspi: gaspiView, recalls: recallView })[fTab](body);
+  (ctx.extraView("fridge", fTab) || { dates: expiryView, gaspi: gaspiView, recalls: recallView }[fTab] || expiryView)(body);
 };
 ctx.modules.push({ key: "fridge", color: "linear-gradient(135deg,#22b8cf,#1971c2)", title: () => t("modFridge"), sub: () => t("modFridgeSub"),
   badge: () => { const n = expiry.filter(x => daysLeft(x.date) <= 2).length; return n ? "⏰ " + n : null; },
@@ -400,9 +400,15 @@ function medHits(p) {
   const txt = [p.name, p.ing, (p.cats || []).join(" "), (p.add || []).join(" ")].join(" ");
   return MEDS.filter(m => settings.meds.includes(m.k) && m.re.test(txt));
 }
+let mTab = null;
 VIEWS.meds = root => {
   const wrap = h("div", { className: "wrap" }); root.append(wrap);
   wrap.append(h("header", {}, header(t("modMeds"), { back: true })));
+  const tabs = ctx.tabsFor("meds", []).concat([["drugs", "💊 " + t("md_tab")]]);
+  if (!mTab || !tabs.some(x => x[0] === mTab)) mTab = tabs[0][0];
+  if (tabs.length > 1) wrap.append(seg(tabs, mTab, k => { mTab = k; go("meds"); }));
+  const xv = ctx.extraView("meds", mTab);
+  if (xv) { const body = h("div", { style: "margin-top:12px" }); wrap.append(body); xv(body); return; }
   wrap.append(h("div", { className: "alert medwarn", textContent: "⚠️ " + t("md_warn") }), h("p", { className: "sub", textContent: t("md_help") }));
   const l = h("div", { className: "nlist" });
   MEDS.forEach(m => {
@@ -515,7 +521,7 @@ ctx.homeHooks.push(el => {
   const card = h("div", { className: "dayCard" });
   const mood = d.water >= 8 ? "😍" : d.water >= 4 ? "😊" : "🥵";
   const wv = h("b", { textContent: d.water + "/8" });
-  const set = n => { d.water = Math.max(0, Math.min(20, n)); all[k] = d; lsSet(DAY_KEY, all); wv.textContent = d.water + "/8"; drops.style.setProperty("--p", Math.min(100, d.water / 8 * 100) + "%"); face.textContent = d.water >= 8 ? "😍" : d.water >= 4 ? "😊" : "🥵"; if (d.water === 8) toast("💧 " + t("dy_waterOk")); };
+  const set = n => { if (n === 8 && d.water === 7 && ctx.track) ctx.track("water8"); d.water = Math.max(0, Math.min(20, n)); all[k] = d; lsSet(DAY_KEY, all); wv.textContent = d.water + "/8"; drops.style.setProperty("--p", Math.min(100, d.water / 8 * 100) + "%"); face.textContent = d.water >= 8 ? "😍" : d.water >= 4 ? "😊" : "🥵"; if (d.water === 8) toast("💧 " + t("dy_waterOk")); };
   const minus = h("button", { type: "button", className: "iconbtn", ariaLabel: "-", textContent: "−" }); minus.onclick = () => set(d.water - 1);
   const plus = h("button", { type: "button", className: "iconbtn", ariaLabel: "+", textContent: "+" }); plus.onclick = () => set(d.water + 1);
   const drops = h("div", { className: "dbar water" }); drops.style.setProperty("--p", Math.min(100, d.water / 8 * 100) + "%");
@@ -563,6 +569,7 @@ function listen() {
 ctx.homeBar.push(() => { const b = h("button", { type: "button", className: "langbtn micbtn", ariaLabel: t("vo_title"), textContent: "🎙️" }); b.onclick = listen; return b; });
 ctx.voiceSearch = voiceSearch;
 // Pour les tests automatiques sur émulateur (aucune donnée exposée)
+ctx.setMedsTab = k => { mTab = k; }; ctx.addExpiry = addExpiry; ctx.addExpiryQuick = (name, date) => { const x = { id: "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, code: "", date }; expiry.push(x); saveExpiry(); schedule(x); }; ctx.fridgeTab = k => { fTab = k; }; ctx.scanProduct = scanProduct; ctx.monthKey = monthKey; ctx.SPEND_KEY = SPEND_KEY;
 window.SoveeTest = { open: c => ctx.openProduct(c), go: v => go(v), compare: (a, b) => Promise.all([D.findProduct(a), D.findProduct(b)]).then(([x, y]) => { cmp = [x, y]; go("compare"); }) };
 
 /* ======================= Widget de l'écran d'accueil ======================= */

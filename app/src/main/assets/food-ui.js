@@ -229,7 +229,7 @@ async function openProduct(code, hint) {
   const p = await D.findProduct(code);
   if (!p) { current = { missing: true, code }; if (ctx.view() === "product") ctx.render(); return; }
   current = p; const sc = scoreOf(p); addHistory(p, sc);
-  if (ctx.track) ctx.track("scan", { code: p.code, type: p.type, score: sc, risky: p.type === "food" && foodAdditives(p).some(a => a.band === "risk") });
+  if (ctx.track) ctx.track("scan", { code: p.code, type: p.type, score: sc, risky: p.type === "food" && foodAdditives(p).some(a => a.band === "risk"), bio: p.type === "food" && R.isOrganic(p) });
   if (ctx.view() === "product") ctx.render();
 }
 VIEWS.product = rootEl => {

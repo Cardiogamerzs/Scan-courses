@@ -272,7 +272,7 @@ class MainActivity : AppCompatActivity() {
         if (out.exists()) { sendCut(code, "cut/$safe.jpg"); return }
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 12000; c.readTimeout = 15000
-        c.setRequestProperty("User-Agent", "Sovee-Android/4.6")
+        c.setRequestProperty("User-Agent", "Sovee-Android/4.7")
         val src = c.inputStream.use { BitmapFactory.decodeStream(it) } ?: throw Exception("image")
         c.disconnect()
         val res = Tasks.await(segmenter.process(InputImage.fromBitmap(src, 0)))
@@ -407,7 +407,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val c = URL(url).openConnection() as HttpURLConnection
                     c.connectTimeout = 12000; c.readTimeout = 15000
-                    c.setRequestProperty("User-Agent", "Sovee-Android/4.6")
+                    c.setRequestProperty("User-Agent", "Sovee-Android/4.7")
                     code = c.responseCode
                     body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
                     c.disconnect()

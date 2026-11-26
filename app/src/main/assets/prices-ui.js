@@ -134,6 +134,7 @@ VIEWS.prices = root => {
   wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: "📝 " + t("pr_mine") }), h("span", { textContent: mine.length ? String(mine.length) : "" })));
   if (!mine.length) wrap.append(h("p", { className: "sub", textContent: t("pr_mineHelp") }));
   else { const l = h("div", { className: "plist" }); mine.slice(0, 20).forEach(x => l.append(priceRow(x, null, true))); wrap.append(l); }
+  for (const hk of ctx.pricesHooks || []) { try { hk(wrap); } catch (e) { console.error(e); } }
   wrap.append(h("p", { className: "notice", textContent: t("pr_honest2") }));
 };
 function priceRow(x, pos, showProduct) {
@@ -159,7 +160,7 @@ async function openPrices(code, name) {
 }
 ctx.openPrices = openPrices;
 ctx.getJSON = getJSON;
-ctx.pricesFor = pricesFor;
+ctx.pricesFor = pricesFor; ctx.recentPromos = () => promoCache ? Promise.resolve(promoCache) : recentPromos().then(l => (promoCache = l));
 ctx.viewModule.pricecmp = "prices";
 VIEWS.pricecmp = root => {
   const c = cmp, wrap = h("div", { className: "wrap" }); root.append(wrap);

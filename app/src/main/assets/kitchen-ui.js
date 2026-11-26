@@ -132,10 +132,11 @@ VIEWS.recipes = root => {
   const wrap = h("div", { className: "wrap" });
   wrap.append(h("header", {}, header(t("modRecipes"), { back: true, options: "recipes" })));
   const seg = h("div", { className: "seg" });
-  [["ideas", t("k_ideas")], ["shop", t("k_shop") + (shopCount() ? " (" + shopCount() + ")" : "")]].forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(rTab === k)); b.onclick = () => { rTab = k; go("recipes"); }; seg.append(b); });
+  ctx.tabsFor("recipes", [["ideas", t("k_ideas")]]).concat([["shop", t("k_shop") + (shopCount() ? " (" + shopCount() + ")" : "")]]).forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(rTab === k)); b.onclick = () => { rTab = k; go("recipes"); }; seg.append(b); });
   wrap.append(seg);
   const body = h("div", { style: "margin-top:14px" }); wrap.append(body);
-  if (rTab === "shop") shopView(body); else ideasView(body);
+  const xv = ctx.extraView("recipes", rTab);
+  if (rTab === "shop") shopView(body); else if (xv) xv(body); else ideasView(body);
   root.append(wrap);
 };
 function ideasView(body) {
@@ -167,7 +168,7 @@ function ideasView(body) {
 
 /* Fiche recette */
 let curRecipe = null, curServ = null, recipeFrom = "recipes";
-function openRecipe(id, from) { curRecipe = K.RECIPES.find(r => r.id === id); if (curRecipe && ctx.track) ctx.track("recipe", { veg: K.recipeDiet(curRecipe).vege }); curServ = curRecipe ? curRecipe.s : 2; recipeFrom = from || (ctx.view() === "balance" ? "balance" : "recipes"); go("recipe"); }
+function openRecipe(id, from) { curRecipe = K.RECIPES.find(r => r.id === id); if (curRecipe && ctx.track) ctx.track("recipe", { veg: K.recipeDiet(curRecipe).vege, xmas: curRecipe.tg.includes("noel") }); curServ = curRecipe ? curRecipe.s : 2; recipeFrom = from || (ctx.view() === "balance" ? "balance" : "recipes"); go("recipe"); }
 ctx.viewModule.recipe = "recipes";
 VIEWS.recipe = root => {
   const r = curRecipe; const wrap = h("div", { className: "wrap" }); root.append(wrap);
@@ -208,10 +209,10 @@ VIEWS.balance = root => {
   const wrap = h("div", { className: "wrap" });
   wrap.append(h("header", {}, header(t("modBalance"), { back: true, options: "balance" })));
   const seg = h("div", { className: "seg" });
-  [["guide", t("k_guide")], ["menu", t("k_menu")], ["list", t("k_recipesEq")]].forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(bTab === k)); b.onclick = () => { bTab = k; go("balance"); }; seg.append(b); });
+  ctx.tabsFor("balance", [["guide", t("k_guide")], ["menu", t("k_menu")], ["list", t("k_recipesEq")]]).forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(bTab === k)); b.onclick = () => { bTab = k; go("balance"); }; seg.append(b); });
   wrap.append(seg);
   const body = h("div", { style: "margin-top:14px" }); wrap.append(body);
-  ({ guide: guideView, menu: menuView, list: eqList })[bTab](body);
+  (ctx.extraView("balance", bTab) || { guide: guideView, menu: menuView, list: eqList }[bTab] || guideView)(body);
   root.append(wrap);
 };
 function plateSVG() {
@@ -485,5 +486,8 @@ ctx.backHooks.push(() => {
 });
 ctx.addRecipeToShop = addRecipeToShop;
 ctx.openRecipe = (id, from) => openRecipe(id, from);
+ctx.setRecipeTab = k => { rTab = k; };
+ctx.buildMenu = () => buildMenu(); ctx.menuWeekKey = () => weekKey(); ctx.menuServings = () => S.menuServings;
+ctx.recipeRow = r => recipeRow(r);
 ctx.shopApi = { get: () => shop, set: v => { shop = v; saveShop(); }, save: () => saveShop() };
 });

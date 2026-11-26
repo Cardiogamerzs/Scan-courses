@@ -60,7 +60,7 @@ function earned() { return BADGES.filter(b => b[2](log)).map(b => b[0]); }
 /* ================= Suivi ================= */
 ctx.track = (e, data = {}) => {
   const before = progress().filter(x => x.done).length, badgesBefore = earned();
-  log.push(Object.assign({ e, t: Date.now() }, data.code ? { c: data.code, s: data.score, ty: data.type, risky: !!data.risky } : {}, data.veg ? { veg: true } : {}));
+  log.push(Object.assign({ e, t: Date.now() }, data.code ? { c: data.code, s: data.score, ty: data.type, risky: !!data.risky } : {}, data.veg ? { veg: true } : {}, data.bio ? { bio: true } : {}, data.xmas ? { xmas: true } : {}, data.r ? { r: data.r } : {}, !data.code && data.s != null ? { s: data.s } : {}));
   if (log.length > 4000) log = log.slice(-4000);
   lsSet(LOG_KEY, log);
   const pr = progress(), after = pr.filter(x => x.done).length;
@@ -133,10 +133,10 @@ VIEWS.progress = root => {
   const wrap = h("div", { className: "wrap" }); root.append(wrap);
   wrap.append(h("header", {}, header(t("modProgress"), { back: true })));
   const seg = h("div", { className: "seg" });
-  [["challenges", t("ch_tab")], ["report", t("rp_tab")], ["badges", t("bd_tab")]].forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(pTab === k)); b.onclick = () => { pTab = k; go("progress"); }; seg.append(b); });
+  ctx.tabsFor("progress", [["challenges", t("ch_tab")], ["report", t("rp_tab")], ["badges", t("bd_tab")]]).forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(pTab === k)); b.onclick = () => { pTab = k; go("progress"); }; seg.append(b); });
   wrap.append(seg);
   const body = h("div", { style: "margin-top:12px" }); wrap.append(body);
-  ({ challenges: challengesView, report: reportView, badges: badgesView })[pTab](body);
+  (ctx.extraView("progress", pTab) || { challenges: challengesView, report: reportView, badges: badgesView }[pTab] || challengesView)(body);
 };
 ctx.modules.push({ key: "progress", color: "linear-gradient(135deg,#f59f00,#e8590c)", title: () => t("modProgress"), sub: () => t("modProgressSub"),
   badge: () => { const p = progress(); return p.filter(x => x.done).length + "/" + p.length; },
@@ -183,6 +183,7 @@ const BABY_NO = [
   ["🥜", "Fruits à coque entiers avant 5 ans", "Risque d'étouffement : en poudre ou en purée seulement."],
   ["🧀", "Lait cru, viande ou poisson crus avant 5 ans", "Risque d'infections graves (listeria, E. coli)."]
 ];
+window.SoveeContent = { PREG, PREG_GOOD, BABY, BABY_NO }; // textes traduits en anglais par lang-en.js
 const BABY_ALLERGENS = [["eggs", "🥚"], ["peanuts", "🥜"], ["gluten", "🌾"], ["milk", "🥛"], ["fish", "🐟"], ["nuts", "🌰"], ["soybeans", "🫘"], ["sesame-seeds", "⚪"], ["crustaceans", "🦐"]];
 function allergenLabel(a) { const k = "al_" + a.replace(/-/g, "_"); const v = t(k); return v && v !== k ? v : a; }
 function pregInfo() {
@@ -247,13 +248,14 @@ VIEWS.family = root => {
   const wrap = h("div", { className: "wrap" }); root.append(wrap);
   wrap.append(h("header", {}, header(t("modFamily"), { back: true })));
   const seg = h("div", { className: "seg" });
-  [["preg", "🤰 " + t("fm_tabPreg")], ["baby", "👶 " + t("fm_tabBaby")]].forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(fTab === k)); b.onclick = () => { fTab = k; go("family"); }; seg.append(b); });
+  ctx.tabsFor("family", [["preg", "🤰 " + t("fm_tabPreg")], ["baby", "👶 " + t("fm_tabBaby")]]).forEach(([k, l]) => { const b = h("button", { type: "button", textContent: l }); b.setAttribute("aria-pressed", String(fTab === k)); b.onclick = () => { fTab = k; go("family"); }; seg.append(b); });
   wrap.append(seg);
   const body = h("div", { style: "margin-top:12px" }); wrap.append(body);
-  (fTab === "preg" ? pregView : babyView)(body);
+  (ctx.extraView("family", fTab) || (fTab === "preg" ? pregView : babyView))(body);
 };
 ctx.modules.push({ key: "family", color: "linear-gradient(135deg,#f783ac,#9775fa)", title: () => t("modFamily"), sub: () => t("modFamilySub"),
   badge: () => { const p = pregInfo(); return p && p.days > 0 ? t("fm_badge", p.sa) : null; },
   icon: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M12 9c-4 0-6 3-6 6h12c0-3-2-6-6-6zM9 21v-6M15 21v-6"/></svg>' });
+ctx.extrasApi = { log: () => log, earned: () => earned(), BADGES, progress: () => progress(), weekKey: () => weekKey(), pregInfo: () => pregInfo(), setFamTab: k => { fTab = k; }, setProgTab: k => { pTab = k; } };
 ctx.backHooks.push(() => { if (ctx.view() === "progress" && pTab !== "challenges") { pTab = "challenges"; go("progress"); return true; } return false; });
 });
