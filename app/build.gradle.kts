@@ -14,7 +14,7 @@ android {
         // À augmenter à chaque nouvelle version, pour pouvoir installer la mise à jour par-dessus.
         // Numéro du run GitHub Actions : toujours croissant (exigé par le Play Store)
         versionCode = (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.plus(100)) ?: 12
-        versionName = "4.7"
+        versionName = "1.0"
     }
 
     signingConfigs {

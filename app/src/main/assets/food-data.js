@@ -322,6 +322,9 @@ function finish(p, code) {
   if (p.type === "food" && (!p.ing || p.ing === "x")) {
     const u = userInci()[p.code] || userInci()[code];
     if (u) p = { ...p, ing: u.t, userIng: true, ingFromPhoto: u.n === "@off-photo", add: (p.add || []).length ? p.add : additivesInText(u.t) };
+    // Sinon celle validée par la communauté Sovée (lue sur l'étiquette par plusieurs personnes)
+    const c = !u && root.Community && root.Community.cached(p.code);
+    if (c && c.s === "validated" && c.t) p = { ...p, ing: c.t, commIng: true, commPeople: c.p, add: (p.add || []).length ? p.add : additivesInText(c.t) };
   }
   // Composition sans additifs repérés (listes relevées hors Open Food Facts, oublis d'OFF) : on lit les noms en toutes lettres
   if ((p.type === "food" || p.type === "pet") && p.ing && p.ing !== "x" && !(p.add || []).length) {

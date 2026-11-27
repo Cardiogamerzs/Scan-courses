@@ -24,8 +24,11 @@ Certaines fonctions interrogent des bases de données publiques. Seules les info
 | Magasins autour de toi (si tu l'actives) | Overpass API (OpenStreetMap) | Ta position au moment de la recherche |
 | Ville à partir du code postal (si tu n'actives pas la position) | Base adresse nationale (api-adresse.data.gouv.fr) | Le code postal saisi dans les options |
 | Photos des produits | Open Food Facts | L'adresse de la photo demandée |
+| Compositions partagées par la communauté | Serveur Sovée (Supabase, hébergé en Irlande, Union européenne) | Le code-barres du produit sans composition ; si tu partages une liste : son texte lu sur la photo (la photo elle-même ne quitte jamais ton téléphone) et un identifiant anonyme créé au hasard |
 
 Ces services ont leurs propres politiques de confidentialité. Comme tout site web, ils reçoivent techniquement l'adresse IP de la connexion.
+
+Partage des compositions : aucun nom, e-mail ni numéro n'est demandé. Le serveur Sovée ne garde pas l'adresse IP en clair, seulement une empreinte chiffrée (avec un sel secret) qui sert à empêcher une même personne de valider seule une liste et à bloquer les tricheurs. Tu peux décocher « Partager avec la communauté » avant d'analyser une composition.
 
 ## 3. Position
 
@@ -81,8 +84,11 @@ Some features query public databases. Only the strictly necessary information is
 | Nearby shops (if enabled) | Overpass API (OpenStreetMap) | Your location at the time of the search |
 | Town from postcode (if location is off) | French national address database | The postcode entered in the settings |
 | Product photos | Open Food Facts | The address of the requested photo |
+| Community-shared ingredient lists | Sovée server (Supabase, hosted in Ireland, European Union) | The barcode of a product with no ingredients; if you share a list: its text read from the photo (the photo itself never leaves your phone) and a random anonymous ID |
 
 These services have their own privacy policies. Like any website, they technically receive the connection's IP address.
+
+Ingredient sharing: no name, email or number is asked. The Sovée server never stores the IP address in clear, only a salted hash used to stop one person from validating a list alone and to block cheaters. You can untick "Share with the Sovée community" before analysing a list.
 
 ## 3. Location
 

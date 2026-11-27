@@ -15,6 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Partage des compositions entre utilisateurs : adresse + clé publique Supabase (secrets du dépôt)
+      - name: Configurer le partage des compositions
+        env:
+          SB_URL: ${{ secrets.SOVEE_SUPABASE_URL }}
+          SB_KEY: ${{ secrets.SOVEE_SUPABASE_KEY }}
+        run: |
+          if [ -z "$SB_URL" ] || [ -z "$SB_KEY" ]; then echo "Pas de serveur Supabase dans les secrets : partage désactivé."; exit 0; fi
+          node -e 'require("fs").writeFileSync("app/src/main/assets/community-config.js", "window.SOVEE_COMMUNITY = " + JSON.stringify({ url: process.env.SB_URL.trim(), key: process.env.SB_KEY.trim() }) + ";\n")'
+          echo "Partage des compositions activé."
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -118,8 +128,8 @@ jobs:
       - name: Publier dans les Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v4.7.${{ github.run_number }}
-          name: Sovée 4.7.${{ github.run_number }}
+          tag_name: v1.0.${{ github.run_number }}
+          name: Sovée 1.0 (build ${{ github.run_number }})
           body: |
             Télécharge **Sovee.apk** sur ton téléphone Android et ouvre-le pour l'installer.
             Lien direct, toujours vers la dernière version :
