@@ -231,6 +231,12 @@ async function openProduct(code, hint) {
   current = p; const sc = scoreOf(p); addHistory(p, sc);
   if (ctx.track) ctx.track("scan", { code: p.code, type: p.type, score: sc, risky: p.type === "food" && foodAdditives(p).some(a => a.band === "risk"), bio: p.type === "food" && R.isOrganic(p) });
   if (ctx.view() === "product") ctx.render();
+  // Composition partagée par la communauté (jamais à la place d'une liste officielle)
+  if (p.type === "food" && window.Community && Community.enabled() && (!p.ing || p.ing === "x" || p.userIng || p.commIng)) {
+    if (await Community.refresh(p.code) && current && current.code === p.code) {
+      const q = await D.findProduct(code); if (q && current.code === p.code) { current = q; if (ctx.view() === "product") ctx.render(); }
+    }
+  }
 }
 VIEWS.product = rootEl => {
   const p = current, wrap = h("div", { className: "wrap" });
@@ -543,13 +549,22 @@ function healthTab(body, p, sc) {
     try { NATIVE.ocrUrl(code, p.imgIng); } catch (e) { st.textContent = t("u_ocrOffFail"); }
   }
   // Composition inconnue partout : la lire en photo sur l'emballage (ou la taper)
+  const cm = window.Community && Community.cached(p.code);
   if (!p.ing || p.ing === "x") {
     const b = h("button", { type: "button", className: "btn primary full", textContent: "📷 " + t("u_photoInci") });
     b.onclick = () => inciEditor(p.code, p.name, "", false, p.brand, true);
+    if (cm && cm.s === "review") body.append(h("p", { className: "notice", textContent: "🔁 " + t("cm_review") }));
+    else if (cm && cm.s === "none" && cm.q) body.append(h("p", { className: "notice", textContent: "👥 " + t("cm_others") }));
     body.append(h("div", { className: "row col" }, b), h("p", { className: "notice", textContent: t("u_foodIngHelp") }));
+  } else if (p.commIng) {
+    // Liste validée par la communauté : verrouillée, on peut seulement la signaler
+    const er = h("button", { type: "button", className: "linkbtn", textContent: cm && cm.rep ? "✓ " + t("cm_reported") : "🚩 " + t("cm_error") });
+    if (!(cm && cm.rep)) er.onclick = () => reportSheet(p.code);
+    body.append(h("div", { className: "userinci" }, h("span", { textContent: "👥 " + t("cm_byCommunity", p.commPeople || 2) }), er));
   } else if (p.userIng) {
     const ed = h("button", { type: "button", className: "linkbtn", textContent: t("u_edit") }); ed.onclick = () => inciEditor(p.code, p.name, p.ing, false, p.brand, true);
     body.append(h("div", { className: "userinci" }, h("span", { textContent: (p.ingFromPhoto ? "📷 " + t("u_ingFromOffPhoto") : "✍️ " + t("u_yourInci")) }), ed));
+    if (cm && cm.s === "mine") body.append(h("p", { className: "notice", textContent: "⏳ " + t("cm_pending", cm.p, cm.n) }));
   }
 
   // Grossesse / bébés
@@ -691,13 +706,14 @@ function inciEditor(code, name, initial, askName, brand, food) {
     sh.append(h("h2", { textContent: t("u_inciTitle") }), h("p", { className: "sub", textContent: t("u_inciHelp") }));
     let nameIn = null;
     if (askName) { nameIn = h("input", { type: "text", value: name || "", placeholder: t("u_namePh") }); sh.append(h("div", { className: "f" }, nameIn)); }
+    let ocrText = "";
     const ta = h("textarea", { rows: 7, value: initial || "", placeholder: food ? "Sucre, huile de palme, noisettes 13 %, lait écrémé en poudre, émulsifiant : lécithines (E322)…" : "Aqua, Glycerin, Cetearyl Alcohol, Parfum…" });
     const status = h("p", { className: "sub" });
     if (NATIVE && NATIVE.ocrPhoto) {
       const cam = h("button", { type: "button", className: "btn primary", textContent: "📷 " + t("u_takePhoto") });
       const gal = h("button", { type: "button", className: "btn", textContent: "🖼️ " + t("u_fromGallery") });
       window.onOcr = (text, err) => {
-        if (text && text.trim()) { ta.value = cleanInci(text); status.textContent = "✓ " + t("u_ocrOk"); }
+        if (text && text.trim()) { ta.value = ocrText = cleanInci(text); status.textContent = "✓ " + t("u_ocrOk"); }
         else status.textContent = err === "cancel" ? "" : t("u_ocrFail");
       };
       cam.onclick = () => { status.textContent = t("u_reading"); NATIVE.ocrPhoto(false); };
@@ -715,15 +731,52 @@ function inciEditor(code, name, initial, askName, brand, food) {
     };
     tools.append(web, paste); sh.append(tools);
     sh.append(status, h("div", { className: "f" }, ta), h("p", { className: "notice", textContent: t("u_checkText") }));
+    // Partage avec les autres utilisateurs : seulement une liste lue sur une photo de l'étiquette
+    const C = food && /^\d{6,14}$/.test(String(code)) && window.Community && Community.enabled() ? Community : null;
+    let share = null;
+    if (C) {
+      share = h("input", { type: "checkbox", checked: true });
+      sh.append(h("label", { className: "toggle" }, h("span", { textContent: t("cm_share") }), share), h("p", { className: "sub", textContent: t("cm_shareHelp") }));
+    }
     const ok = h("button", { type: "button", className: "btn primary full", textContent: "✨ " + t("u_analyse") });
     ok.onclick = () => {
       const txt = cleanInci(ta.value);
       if ((txt.match(/,/g) || []).length < 2) { status.textContent = t("u_tooShort"); return; }
       D.setUserInci(code, txt, nameIn ? nameIn.value.trim() : name);
+      if (C && share.checked) {
+        const bad = C.check(txt);
+        if (!ocrText) toast(t("cm_notPhoto"));
+        else if (C.similarity(txt, ocrText) < 0.8) toast(t("cm_tooEdited"));
+        else if (bad) toast(t("cm_notShared") + t("cm_bad_" + bad));
+        else C.submit(code, txt, nameIn ? nameIn.value.trim() : name).then(r => {
+          const e = r && r.error || "";
+          toast(r && r.ok ? t("cm_sent_" + r.result) : e.startsWith("bad_text:") ? t("cm_notShared") + t("cm_bad_" + e.slice(9)) : t("cm_e_" + e) || t("cm_e_net"));
+          if (current && current.code === code && ctx.view() === "product") ctx.render();
+        });
+      }
       closeSheet(); openProduct(code);
     };
     sh.append(ok);
     if (initial) { const del = h("button", { type: "button", className: "btn full", style: "margin-top:8px", textContent: t("u_removeInci") }); del.onclick = () => { D.setUserInci(code, ""); closeSheet(); openProduct(code); }; sh.append(del); }
+  });
+}
+function reportSheet(code) {
+  openSheet(sh => {
+    sh.append(h("h2", { textContent: "🚩 " + t("cm_reportTitle") }), h("p", { className: "sub", textContent: t("cm_reportHelp") }));
+    const list = h("div", { className: "row col" });
+    ["product", "read", "recipe", "fake"].forEach(k => {
+      const b = h("button", { type: "button", className: "btn full", textContent: t("cm_r_" + k) });
+      b.onclick = async () => {
+        closeSheet();
+        const r = await Community.report(code, k);
+        toast(r && r.ok ? t("cm_reported") : t("cm_e_" + (r && r.error)) || t("cm_e_net"));
+        if (r && r.result === "review" && current && current.code === code) { const q = await D.findProduct(code); if (q) { current = q; ctx.render(); } }
+        else if (ctx.view() === "product") ctx.render();
+      };
+      list.append(b);
+    });
+    const cancel = h("button", { type: "button", className: "btn primary full", textContent: t("close") }); cancel.onclick = closeSheet;
+    sh.append(list, h("div", { className: "row", style: "margin-top:8px" }, cancel));
   });
 }
 function altTab(body, p) {
