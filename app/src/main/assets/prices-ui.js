@@ -37,7 +37,7 @@ function locate() {
       const zip = (settings.zip || "").trim(); if (!/^\d{5}$/.test(zip)) return ko(e);
       fetch("https://api-adresse.data.gouv.fr/search/?q=" + zip + "&type=municipality&limit=1").then(r => r.json()).then(j => {
         const f = j.features && j.features[0]; if (!f) return ko(e);
-        const v = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], acc: 5000, t: Date.now(), zip }; ok(v);
+        const v = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], acc: 5000, t: Date.now(), zip }; lsSet(POS_KEY, v); ok(v);
       }).catch(() => ko(e));
     };
     if (!navigator.geolocation) return byZip(new Error("geo"));
@@ -66,8 +66,9 @@ function normPrice(it) {
     code: it.product_code || prod.code || "", pname: prod.product_name || it.product_name || "", brand: (prod.brands || "").split(",")[0], img: prod.image_url || "", src: "op"
   };
 }
-// Seulement la France (les autres pays faussent la comparaison)
-const FR = "&currency=EUR&location__osm_address_country=France";
+// Seulement la France (les autres pays faussent la comparaison).
+// Attention : l'API ignore « location__osm_address_country » ; le bon filtre est le code pays.
+const FR = "&location__osm_address_country_code=FR";
 function inFrance(x) {
   if (x.src === "me") return true;
   if (x.cur && x.cur !== "EUR") return false;
@@ -75,27 +76,56 @@ function inFrance(x) {
   if (x.country) return /france/i.test(x.country);
   return x.lat != null && x.lat > 41 && x.lat < 51.5 && x.lon > -5.5 && x.lon < 9.8;
 }
+const clean = arr => { const seen = new Set(); return arr.map(normPrice).filter(x => isFinite(x.price) && x.price > 0 && inFrance(x))
+  .filter(x => { const k = x.code + "|" + x.store + "|" + x.date + "|" + x.price; if (seen.has(k)) return false; seen.add(k); return true; }); };
+const items = j => (j && (j.items || j.results)) || [];
+const dayAgo = n => new Date(Date.now() - n * 86400e3).toISOString().slice(0, 10);
 async function pricesFor(code) {
-  const j = await getJSON(API + "?product_code=" + encodeURIComponent(code) + FR + "&order_by=-date&size=100");
-  return (j.items || j.results || []).map(normPrice).filter(x => isFinite(x.price) && x.price > 0 && inFrance(x));
+  const url = API + "?product_code=" + encodeURIComponent(code) + FR + "&order_by=-date&size=100";
+  const j = await getJSON(url);
+  let all = items(j);
+  if ((j.total || 0) > 100) all = all.concat(items(await getJSON(url + "&page=2").catch(() => ({}))));
+  return clean(all);
 }
+// Promos récentes partout en France (repère quand rien n'est relevé près de chez soi)
 async function recentPromos() {
-  const since = new Date(Date.now() - 60 * 86400e3).toISOString().slice(0, 10);
-  const pages = await Promise.all([1, 2, 3, 4].map(n => getJSON(API + "?price_is_discounted=true" + FR + "&date__gte=" + since + "&order_by=-date&size=100&page=" + n).catch(() => ({}))));
-  const seen = new Set();
-  return pages.flatMap(j => j.items || j.results || []).map(normPrice).filter(x => isFinite(x.price) && x.price > 0 && inFrance(x))
-    .filter(x => { const k = x.code + "|" + x.store + "|" + x.date + "|" + x.price; if (seen.has(k)) return false; seen.add(k); return true; });
+  const pages = await Promise.all([1, 2].map(n => getJSON(API + "?price_is_discounted=true" + FR + "&date__gte=" + dayAgo(45) + "&order_by=-date&size=100&page=" + n).catch(() => ({}))));
+  return clean(pages.flatMap(items));
+}
+// Recherche autour d'une position (filtre fait par le serveur : lat, lon, radius_km)
+const around = (pos, km, extra) => getJSON(API + "?lat=" + pos.lat.toFixed(4) + "&lon=" + pos.lon.toFixed(4) + "&radius_km=" + km + FR + extra + "&order_by=-date&size=100").then(j => clean(items(j)));
+// Promos : d'abord dans le rayon choisi, sinon on élargit pour montrer les plus proches, sinon la France entière.
+async function promosNear(pos, km) {
+  const inRadius = await around(pos, km, "&price_is_discounted=true&date__gte=" + dayAgo(90));
+  if (inRadius.length) return { mode: "near", list: inRadius };
+  for (const wide of [50, 100, 200]) {
+    if (wide <= km) continue;
+    const l = await around(pos, wide, "&price_is_discounted=true&date__gte=" + dayAgo(365)).catch(() => []);
+    if (l.length) return { mode: "wide", km: wide, list: l.sort((a, b) => distKm(pos, a) - distKm(pos, b)) };
+  }
+  const fr = await recentPromos();
+  return { mode: "france", list: fr };
+}
+// Derniers prix relevés (promo ou non) autour de soi, en élargissant si besoin
+async function pricesNear(pos, km) {
+  for (const r of [km, 50, 100].filter((v, i, a) => v >= km && a.indexOf(v) === i)) {
+    const l = await around(pos, r, "&date__gte=" + dayAgo(365)).catch(() => []);
+    if (l.length) return { km: r, list: l };
+  }
+  return { km, list: [] };
 }
 const money = (v, cur) => isFinite(v) ? v.toLocaleString(settings.lang, { style: "currency", currency: cur || "EUR" }) : "—";
 
 /* ---------- Écran principal ---------- */
-let promoCache = null;
+let promoCache = null, autoLocTried = false;
 VIEWS.prices = root => {
   const wrap = h("div", { className: "wrap" });
   wrap.append(h("header", {}, header(t("modPrices"), { back: true, options: "prices" })));
   root.append(wrap);
   // Position + rayon
   const pos = savedPos();
+  // Position périmée (plus de 6 h) : on relocalise tout seul une fois, sans attendre un clic
+  if (!pos && !autoLocTried) { autoLocTried = true; locate().then(() => { if (ctx.view() === "prices") go("prices"); }).catch(() => {}); }
   const posTxt = h("small", { textContent: pos ? t("pr_located", fmtKm((pos.acc || 0) / 1000)) : t("pr_notLocated") });
   const locBtn = h("button", { type: "button", className: "btn", textContent: "📍 " + (pos ? t("pr_relocate") : t("pr_locate")) });
   locBtn.onclick = async () => { locBtn.disabled = true; locBtn.textContent = "…"; try { await locate(); promoCache = null; go("prices"); } catch (e) { locBtn.disabled = false; locBtn.textContent = "📍 " + t("pr_locate"); toast(t("pr_noGeo")); } };
@@ -107,10 +137,7 @@ VIEWS.prices = root => {
   big.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>';
   big.append(h("b", { textContent: t("pr_scanBtn") }), h("span", { textContent: t("pr_scanSub") }));
   const msg = h("div", { className: "msg" });
-  big.onclick = () => {
-    if (NATIVE) { window.onNativeScan = (text, fmt) => { if (text) openPrices(text.replace(/\D/g, "") || text); else { msg.className = "msg err"; msg.textContent = fmt || t("scanFail"); } }; NATIVE.scan(); return; }
-    ctx.pickPhoto(async f => { try { const r = await ctx.decodeImage(f); openPrices(r.text); } catch (e) { msg.className = "msg err"; msg.textContent = t("scanFail"); } });
-  };
+  big.onclick = () => scanThen(code => openPrices(code), msg);
   wrap.append(h("div", { style: "margin-top:14px" }, big), msg);
   const q = h("input", { id: "pr-q", type: "search", placeholder: t("pr_searchPh"), autocomplete: "off" });
   const box = h("label", { className: "search", htmlFor: "pr-q", style: "margin-top:12px" }); box.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'; box.append(q);
@@ -120,23 +147,50 @@ VIEWS.prices = root => {
   // Promos récentes autour de moi
   wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: "🔥 " + t("pr_promosNear") }), h("span", { textContent: P.radius + " km" })));
   const promoBox = h("div", { className: "plist" }); wrap.append(promoBox);
-  if (!pos) promoBox.append(h("p", { className: "sub", textContent: t("pr_needPos") }));
-  else {
+  const nearBox = h("div", { className: "plist" });
+  const nearHead = h("div", { className: "sect2" }, h("h3", { textContent: "🏪 " + t("pr_lastNear") }), h("span"));
+  if (!pos) {
+    promoBox.append(h("p", { className: "sub", textContent: t("pr_needPos") }));
+    const b = h("button", { type: "button", className: "btn full", textContent: "📍 " + t("pr_locate") }); b.onclick = locBtn.onclick; promoBox.append(h("div", { className: "row" }, b));
+  } else {
     promoBox.append(h("p", { className: "sub", textContent: t("f_loading") }));
-    (promoCache ? Promise.resolve(promoCache) : recentPromos()).then(list => {
-      promoCache = list; promoBox.textContent = "";
-      const near = list.filter(x => x.lat != null && distKm(pos, x) <= P.radius).sort((a, b) => b.date.localeCompare(a.date));
-      if (!near.length) { promoBox.append(h("p", { className: "sub", textContent: t("pr_noPromoNear") })); return; }
-      near.slice(0, 30).forEach(x => promoBox.append(priceRow(x, pos, true)));
-    }).catch(() => { promoBox.textContent = ""; promoBox.append(h("p", { className: "sub", textContent: t("f_offline") })); });
+    const key = pos.lat.toFixed(3) + "," + pos.lon.toFixed(3) + "," + P.radius;
+    if (!promoCache || promoCache.key !== key) promoCache = { key, promos: promosNear(pos, P.radius), last: pricesNear(pos, P.radius) };
+    const cache = promoCache;
+    cache.promos.then(res => {
+      promoBox.textContent = "";
+      if (!res.list.length) { promoBox.append(h("p", { className: "sub", textContent: t("pr_noPromoNear") })); return; }
+      if (res.mode === "wide") promoBox.append(h("p", { className: "sub", textContent: t("pr_widened", P.radius, res.km) }));
+      if (res.mode === "france") promoBox.append(h("p", { className: "sub", textContent: t("pr_franceWide", P.radius) }));
+      const list = res.mode === "near" ? res.list.sort((x, y) => y.date.localeCompare(x.date)) : res.list;
+      list.slice(0, res.mode === "near" ? 30 : 15).forEach(x => promoBox.append(priceRow(x, pos, true)));
+    }).catch(() => { promoCache = null; promoBox.textContent = ""; promoBox.append(h("p", { className: "sub", textContent: t("f_offline") })); });
+    // Derniers prix relevés près de moi
+    wrap.append(nearHead, nearBox);
+    nearBox.append(h("p", { className: "sub", textContent: t("f_loading") }));
+    cache.last.then(res => {
+      nearBox.textContent = "";
+      nearHead.lastChild.textContent = res.km + " km";
+      if (!res.list.length) { nearBox.append(h("p", { className: "sub", textContent: t("pr_noneAround") })); return; }
+      if (res.km > P.radius) nearBox.append(h("p", { className: "sub", textContent: t("pr_widenedPrices", P.radius, res.km) }));
+      res.list.slice(0, 20).forEach(x => nearBox.append(priceRow(x, pos, true)));
+    }).catch(() => { nearBox.textContent = ""; nearBox.append(h("p", { className: "sub", textContent: t("f_offline") })); });
   }
   // Mes relevés
   wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: "📝 " + t("pr_mine") }), h("span", { textContent: mine.length ? String(mine.length) : "" })));
+  const addBtn = h("button", { type: "button", className: "btn primary full", textContent: "➕ " + t("pr_addOne") });
+  addBtn.onclick = () => scanThen(code => { const c = { code, name: "" }; addMine(c); if (D) D.findProduct(code).then(p => { if (p && p.name) { c.name = p.name; const s = document.getElementById("pm-name"); if (s) s.textContent = p.name; } }).catch(() => {}); }, msg);
   if (!mine.length) wrap.append(h("p", { className: "sub", textContent: t("pr_mineHelp") }));
-  else { const l = h("div", { className: "plist" }); mine.slice(0, 20).forEach(x => l.append(priceRow(x, null, true))); wrap.append(l); }
+  else { const l = h("div", { className: "plist" }); mine.slice(0, 20).forEach(x => l.append(priceRow(x, pos, true))); wrap.append(l); }
+  wrap.append(h("div", { className: "row" }, addBtn));
   for (const hk of ctx.pricesHooks || []) { try { hk(wrap); } catch (e) { console.error(e); } }
   wrap.append(h("p", { className: "notice", textContent: t("pr_honest2") }));
 };
+function scanThen(cb, msg) {
+  const fail = fmt => { msg.className = "msg err"; msg.textContent = fmt || t("scanFail"); };
+  if (NATIVE) { window.onNativeScan = (text, fmt) => { if (text) cb(text.replace(/\D/g, "") || text); else fail(fmt); }; NATIVE.scan(); return; }
+  ctx.pickPhoto(async f => { try { const r = await ctx.decodeImage(f); cb(r.text); } catch (e) { fail(); } });
+}
 function priceRow(x, pos, showProduct) {
   const d = pos && x.lat != null ? distKm(pos, x) : null;
   const sub = [showProduct ? (x.pname || x.code) : null, x.city, d != null ? fmtKm(d) : null, x.date ? new Date(x.date + "T12:00").toLocaleDateString(settings.lang, { day: "numeric", month: "short" }) : null, x.src === "me" ? t("pr_byMe") : null].filter(Boolean).join(" · ");
@@ -160,7 +214,7 @@ async function openPrices(code, name) {
 }
 ctx.openPrices = openPrices;
 ctx.getJSON = getJSON;
-ctx.pricesFor = pricesFor; ctx.recentPromos = () => promoCache ? Promise.resolve(promoCache) : recentPromos().then(l => (promoCache = l));
+ctx.pricesFor = pricesFor; ctx.recentPromos = recentPromos;
 ctx.viewModule.pricecmp = "prices";
 VIEWS.pricecmp = root => {
   const c = cmp, wrap = h("div", { className: "wrap" }); root.append(wrap);
@@ -187,6 +241,11 @@ VIEWS.pricecmp = root => {
     wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: t("pr_nearStores", P.radius) }), h("span", { textContent: String(near.length) })));
     if (near.length) { const l = h("div", { className: "plist" }); near.forEach(x => l.append(priceRow(x, pos, false))); wrap.append(l); }
     else wrap.append(h("p", { className: "sub", textContent: pos ? t("pr_noneNear") : t("pr_needPos") }));
+    if (far.length && pos && !near.length) {
+      // Rien dans le rayon : on montre quand même les magasins les plus proches où le prix a été relevé
+      const closest = far.filter(x => x.d != null).slice(0, 5);
+      if (closest.length) { wrap.append(h("div", { className: "sect2" }, h("h3", { textContent: "📍 " + t("pr_closest") }), h("span", { textContent: String(closest.length) }))); const l = h("div", { className: "plist" }); closest.forEach(x => l.append(priceRow(x, pos, false))); wrap.append(l); }
+    }
     if (far.length) {
       // Repère national : prix médian relevé ailleurs en France (sans liste de magasins lointains)
       const v = far.map(x => x.price).sort((a, b) => a - b), med = v[Math.floor(v.length / 2)];
@@ -201,7 +260,7 @@ VIEWS.pricecmp = root => {
 };
 function addMine(c) {
   openSheet(sh => {
-    sh.append(h("h2", { textContent: t("pr_iSaw") }), h("p", { className: "sub", textContent: c.name || c.code }));
+    sh.append(h("h2", { textContent: t("pr_iSaw") }), h("p", { className: "sub", id: "pm-name", textContent: c.name || c.code }));
     const stores = ["Intermarché", "Auchan", "Carrefour", "E.Leclerc", "Lidl", "Super U", "Picard", "Monoprix", "Aldi", "Casino"];
     const storeIn = h("input", { id: "pm-store", placeholder: "Intermarché Fréjus", autocomplete: "off" }); storeIn.setAttribute("list", "pm-stores");
     const dl = h("datalist", { id: "pm-stores" }); stores.forEach(s => dl.append(h("option", { value: s })));
@@ -216,7 +275,7 @@ function addMine(c) {
       const price = parseFloat(String(priceIn.value).replace(",", ".")); const store = storeIn.value.trim();
       if (!store) { err.textContent = t("pr_needStore"); return; } if (!(price > 0)) { err.textContent = t("pr_needPrice"); return; }
       const pos = savedPos();
-      mine.unshift({ code: c.code, pname: c.name, store, city: "", price, was: promo.checked ? parseFloat(String(wasIn.value).replace(",", ".")) || null : null, promo: promo.checked, cur: "EUR",
+      mine.unshift({ code: c.code, pname: c.name || "", store, city: "", price, was: promo.checked ? parseFloat(String(wasIn.value).replace(",", ".")) || null : null, promo: promo.checked, cur: "EUR",
         date: new Date().toISOString().slice(0, 10), lat: pos ? pos.lat : null, lon: pos ? pos.lon : null, src: "me" });
       saveMine(); closeSheet(); ctx.render(); toast(t("k_saved"));
     };

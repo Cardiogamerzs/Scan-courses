@@ -12,6 +12,7 @@ from datetime import date
 UA = "SoveeBot/1.0 (+https://github.com/Cardiogamerzs/Scan-courses ; listes d'ingrédients pour une appli gratuite)"
 DELAY = 3.0
 MAX_MIN = float(sys.argv[1]) if len(sys.argv) > 1 else 45
+ONLY = [x for x in (sys.argv[2] if len(sys.argv) > 2 else "").split(",") if x]  # ex. « auchan »
 
 SITES = [
     # nom, page de recherche par code-barres, motif des liens vers une fiche produit
@@ -40,10 +41,10 @@ class Site:
     def allowed(self, url):
         return self.rp.can_fetch(UA, url)
 
-    def get(self, url, check_robots=True, raw=False):
+    def get(self, url, check_robots=True, raw=False, retry=True):
         if check_robots and not self.allowed(url):
             raise PermissionError("interdit par robots.txt")
-        wait = self.last + DELAY - time.time()
+        wait = self.last + DELAY + 2 * getattr(self, "slow", 0) - time.time()
         if wait > 0: time.sleep(wait)
         self.last = time.time()
         self.stats["req"] += 1
@@ -56,7 +57,13 @@ class Site:
                 self.dead = f"bloqué (HTTP {e.code}) sur {url}"
                 raise
             if e.code == 404: return ""
+            if e.code in (520, 522, 523, 524) and retry:
+                # serveur momentanément injoignable : on ralentit (pause croissante) et on réessaie une seule fois
+                self.slow = min(getattr(self, "slow", 0) + 1, 6)
+                time.sleep(10 * self.slow)
+                return self.get(url, check_robots, raw, retry=False)
             raise
+        if retry and getattr(self, "slow", 0): self.slow -= 1
         if not raw and BLOCK.search(body[:20000]) and "ingr" not in body.lower():
             self.dead = f"page anti-robot sur {url}"
             raise PermissionError(self.dead)
@@ -89,7 +96,7 @@ def extract(page):
 
 def main():
     codes = json.load(open("tools/drive-codes.json", encoding="utf-8"))
-    sites = [Site(*s) for s in SITES]
+    sites = [Site(*s) for s in SITES if not ONLY or s[0] in ONLY]
     for s in sites: print(s.name, ":", s.dead or "robots.txt lu")
     out, t0, today = {}, time.time(), date.today().isoformat()
     for i, item in enumerate(codes):

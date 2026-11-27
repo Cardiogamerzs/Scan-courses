@@ -260,6 +260,57 @@ function eCodes(txt) {
   for (const m of (txt || "").matchAll(/\bE\s?-?(\d{3,4})\s?([a-f])?(?:\s?\(?(i{1,3}|iv|v|vi)\)?)?(?![\d])/gi)) out.add("en:e" + m[1] + (m[2] || "").toLowerCase() + (m[3] || "").toLowerCase());
   return [...out];
 }
+// Additifs écrits en toutes lettres (« émulsifiants : lécithines », « gomme xanthane ») → code E.
+// Le texte est comparé en minuscules et sans accents. Repère les additifs que la liste d'ingrédients ne chiffre pas.
+const E_NAMES = [
+  [/\blecithines?\b/, "e322"], [/mono-? ?et ?di-? ?glycerides|monoglycerides et diglycerides/, "e471"],
+  [/esters? (mono- ?et ?)?diacetyl-? ?tartriques?/, "e472e"], [/esters? citriques? des mono/, "e472c"], [/esters? lactiques? des mono/, "e472b"], [/esters? acetiques? des mono/, "e472a"],
+  [/sucroesters?|esters? de saccharose d.acides gras/, "e473"], [/sucroglycerides/, "e474"], [/esters? polyglyceriques?|esters? de polyglycerol/, "e475"],
+  [/polyricinoleate de polyglycerol/, "e476"], [/stearoyl-?2-?lactylate de sodium/, "e481"], [/stearoyl-?2-?lactylate de calcium/, "e482"],
+  [/polysorbate 80/, "e433"], [/polysorbate 60/, "e435"], [/tristearate de sorbitane/, "e492"], [/monostearate de sorbitane/, "e491"],
+  [/acide sorbique/, "e200"], [/sorbates? de potassium/, "e202"], [/acide benzoique/, "e210"], [/benzoates? de sodium/, "e211"], [/benzoates? de potassium/, "e212"],
+  [/anhydride sulfureux|dioxyde de soufre/, "e220"], [/(meta|di)bisulfites? de sodium|disulfites? de sodium/, "e223"], [/(meta|di)bisulfites? de potassium|disulfites? de potassium/, "e224"],
+  [/nitrites? de sodium/, "e250"], [/nitrites? de potassium/, "e249"], [/nitrates? de sodium/, "e251"], [/nitrates? de potassium/, "e252"],
+  [/acide acetique/, "e260"], [/acetates? de potassium/, "e261"], [/(di)?acetates? de sodium/, "e262"], [/acide lactique/, "e270"], [/acide propionique/, "e280"], [/propionates? de calcium/, "e282"],
+  [/acide ascorbique/, "e300"], [/ascorbates? de sodium/, "e301"], [/ascorbates? de calcium/, "e302"], [/palmitate d.ascorbyle/, "e304"],
+  [/extraits? riches? en tocopherols|\btocopherols\b|melange de tocopherols/, "e306"], [/alpha-? ?tocopherol/, "e307"], [/erythorbates? de sodium/, "e316"],
+  [/gallate de propyle/, "e310"], [/\btbhq\b|butylhydroquinone/, "e319"], [/\bbha\b|butylhydroxyanisole/, "e320"], [/\bbht\b|butylhydroxytoluene/, "e321"],
+  [/lactates? de sodium/, "e325"], [/lactates? de potassium/, "e326"], [/lactates? de calcium/, "e327"],
+  [/acide citrique/, "e330"], [/citrates? (tri|mono|di)?sodiques?|citrates? de sodium/, "e331"], [/citrates? de potassium/, "e332"], [/citrates? de calcium/, "e333"],
+  [/acide tartrique/, "e334"], [/tartrates? de (sodium|potassium)|bitartrate de potassium/, "e336"], [/acide phosphorique/, "e338"],
+  [/phosphates? (tri|mono|di)?sodiques?|phosphates? de sodium/, "e339"], [/phosphates? de potassium/, "e340"], [/phosphates? de calcium|phosphate (mono|di|tri)calcique/, "e341"],
+  [/acide malique/, "e296"], [/acide fumarique/, "e297"],
+  [/acide alginique/, "e400"], [/alginates? de sodium/, "e401"], [/alginates? de calcium/, "e404"], [/agar-? ?agar/, "e406"], [/carraghenanes?|carraghenine/, "e407"],
+  [/(farine|gomme) de (graines? de )?caroube/, "e410"], [/gomme (de )?guar/, "e412"], [/gomme (adragante|tragacanthe)/, "e413"], [/gomme (arabique|d.acacia)/, "e414"],
+  [/gomme xanthane?/, "e415"], [/gomme (de )?tara/, "e417"], [/gomme gellane?/, "e418"], [/gomme de konjac|glucomannane de konjac/, "e425"],
+  [/\bsorbitol\b/, "e420"], [/\bglycerol\b|\bglycerine\b/, "e422"], [/\bpectines?\b/, "e440"],
+  [/cellulose microcristalline|cellulose en poudre/, "e460"], [/\bmethylcellulose/, "e461"], [/hydroxypropylmethylcellulose|hydroxypropyl methyl cellulose/, "e464"],
+  [/carboxymethylcellulose|carboxymethyl cellulose/, "e466"],
+  [/\bdiphosphates?\b|pyrophosphates?/, "e450"], [/\btriphosphates?\b/, "e451"], [/\bpolyphosphates?\b/, "e452"],
+  [/(bi|hydrogeno)?carbonates? de sodium/, "e500"], [/carbonates? de potassium/, "e501"], [/(bi|hydrogeno)?carbonates? d.ammonium/, "e503"], [/carbonates? de magnesium/, "e504"],
+  [/chlorure de potassium/, "e508"], [/chlorure de calcium/, "e509"], [/chlorure de magnesium/, "e511"], [/sulfate de calcium/, "e516"],
+  [/hydroxyde de sodium/, "e524"], [/dioxyde de silicium|\bsilice\b/, "e551"], [/silicate de calcium/, "e552"], [/\btalc\b/, "e553b"],
+  [/glucono-? ?delta-? ?lactone|gluconolactone/, "e575"],
+  [/glutamate (mono)?sodique|glutamate de sodium/, "e621"], [/guanylate disodique/, "e627"], [/inosinate disodique/, "e631"], [/ribonucleotides? (di)?sodiques?/, "e635"],
+  [/cire d.abeille/, "e901"], [/cire de carnauba/, "e903"], [/gomme laque|shellac/, "e904"],
+  [/acesulfame/, "e950"], [/\baspartame\b/, "e951"], [/cyclamates?/, "e952"], [/\bisomalt/, "e953"], [/saccharine/, "e954"], [/\bsucralose\b/, "e955"],
+  [/glycosides? de steviol|\bsteviol\b/, "e960"], [/\bmaltitol\b/, "e965"], [/\blactitol\b/, "e966"], [/\bxylitol\b/, "e967"], [/\berythritol\b/, "e968"],
+  [/\bpolydextrose\b/, "e1200"],
+  [/\bcurcumine\b/, "e100"], [/\bcarmin\b|cochenille|acide carminique/, "e120"], [/chlorophyllines? cuivriques?|complexes? cuivriques? (des |de )?chlorophylles?/, "e141"],
+  [/\bchlorophylles?\b/, "e140"], [/caramel ordinaire/, "e150a"], [/caramel de sulfite caustique/, "e150b"], [/caramel ammoniacal/, "e150c"], [/caramel au sulfite d.ammonium/, "e150d"],
+  [/charbon vegetal/, "e153"], [/beta-? ?carotene|\bcarotenoides\b|\bcarotenes\b/, "e160a"], [/\brocou\b|\bannatto\b|\bbixine\b|norbixine/, "e160b"],
+  [/extrait de paprika|oleoresine de paprika/, "e160c"], [/\blycopene\b/, "e160d"], [/\blutein[e]?\b/, "e161b"], [/rouge de betterave|\bbetanine\b/, "e162"], [/\banthocyanes?\b/, "e163"],
+  [/carbonates? de calcium/, "e170"], [/dioxyde de titane/, "e171"], [/oxydes? de fer/, "e172"]
+];
+function stripAcc(s) { return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’']/g, "'"); }
+// Tous les additifs d'une liste d'ingrédients : codes E écrits + noms en toutes lettres
+function additivesInText(txt) {
+  const out = new Set(eCodes(txt)), t = stripAcc(txt);
+  if (!t) return [...out];
+  const has = c => out.has("en:" + c) || [...out].some(x => x.startsWith("en:" + c));
+  for (const [re, c] of E_NAMES) if (c && re.test(t) && !has(c)) out.add("en:" + c);
+  return [...out];
+}
 function finish(p, code) {
   if (!p) {
     const u = userInci()[code];
@@ -270,10 +321,15 @@ function finish(p, code) {
   // Aliment sans composition : celle photographiée ou tapée par l'utilisateur (additifs repérés dans le texte)
   if (p.type === "food" && (!p.ing || p.ing === "x")) {
     const u = userInci()[p.code] || userInci()[code];
-    if (u) p = { ...p, ing: u.t, userIng: true, ingFromPhoto: u.n === "@off-photo", add: (p.add || []).length ? p.add : eCodes(u.t) };
+    if (u) p = { ...p, ing: u.t, userIng: true, ingFromPhoto: u.n === "@off-photo", add: (p.add || []).length ? p.add : additivesInText(u.t) };
     // Sinon celle validée par la communauté Sovée (lue sur l'étiquette par plusieurs personnes)
     const c = !u && root.Community && root.Community.cached(p.code);
-    if (c && c.s === "validated" && c.t) p = { ...p, ing: c.t, commIng: true, commPeople: c.p, add: (p.add || []).length ? p.add : eCodes(c.t) };
+    if (c && c.s === "validated" && c.t) p = { ...p, ing: c.t, commIng: true, commPeople: c.p, add: (p.add || []).length ? p.add : additivesInText(c.t) };
+  }
+  // Composition sans additifs repérés (listes relevées hors Open Food Facts, oublis d'OFF) : on lit les noms en toutes lettres
+  if ((p.type === "food" || p.type === "pet") && p.ing && p.ing !== "x" && !(p.add || []).length) {
+    const a = additivesInText(p.ing);
+    if (a.length) p = { ...p, add: a, addFromText: true };
   }
   return p;
 }
@@ -330,5 +386,5 @@ async function searchLocal(q, limit = 60) {
   return out;
 }
 
-root.FoodData = { eCodes, normPet, petOnline, STORES, storeKeys, setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
+root.FoodData = { eCodes, additivesInText, normPet, petOnline, STORES, storeKeys, setUserInci, userInci, looksNonFood, looksFood, asBeauty, RANK_FOOD, RANK_BEAUTY, rankGroup, normFood, normBeauty, indexRow, rowAsProduct, findProduct, localProduct, loadIndex, onlineSearch, searchLocal, seenPut, shardOf, norm };
 })(typeof window !== "undefined" ? window : globalThis);
