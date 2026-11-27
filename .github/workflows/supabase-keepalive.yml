@@ -23,7 +23,7 @@ jobs:
           echo
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Compte anonyme :"
-            TOK=$(curl -sS -X POST "${SB_URL%/}/auth/v1/signup" -H "apikey: $SB_KEY" -H "Content-Type: application/json" -d '{"data":{}}' | tee /dev/stderr | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).access_token||"")}catch(e){console.log("")}})')
+            TOK=$(curl -sS -X POST "${SB_URL%/}/auth/v1/signup" -H "apikey: $SB_KEY" -H "Content-Type: application/json" -d '{"data":{}}' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);console.error(j.user&&j.user.is_anonymous?"compte anonyme OK":"compte anonyme refusé : "+(j.msg||j.error_description||s.slice(0,200)));console.log(j.access_token||"")}catch(e){console.log("")}})')
             echo
             if [ -n "$TOK" ]; then
               echo "comm_submit (texte refusé exprès, rien n'est enregistré) :"
