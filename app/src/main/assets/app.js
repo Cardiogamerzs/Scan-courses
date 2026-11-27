@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const APP_VERSION = "4.7";
+const APP_VERSION = "1.0";
 const NATIVE = window.Android || null;
 const $ = s => document.querySelector(s);
 function h(tag, props = {}, ...kids) { const el = document.createElement(tag); Object.assign(el, props); el.append(...kids.filter(k => k != null)); return el; }
