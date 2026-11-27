@@ -105,13 +105,13 @@ end $$;
 
 -- ------------------------------------------------------------ utilitaires --
 create or replace function comm_setting(p_k text) returns int
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, extensions as $$
   select v from comm_settings where k = p_k
 $$;
 
 -- Empreinte salée de la connexion (jamais l'adresse IP en clair)
 create or replace function comm_ip() returns text
-language plpgsql stable security definer set search_path = public as $$
+language plpgsql stable security definer set search_path = public, extensions as $$
 declare h json; ip text;
 begin
   begin h := current_setting('request.headers', true)::json; exception when others then h := null; end;
@@ -123,7 +123,7 @@ end $$;
 
 -- Texte simplifié pour comparer deux lectures (minuscules, sans accents ni ponctuation)
 create or replace function comm_norm(p text) returns text
-language sql immutable as $$
+language sql immutable set search_path = public, extensions as $$
   select trim(regexp_replace(regexp_replace(
     translate(lower(coalesce(p, '')),
       'àâäáãåçéèêëíìîïñóòôöõúùûüýÿœæ',
@@ -133,7 +133,7 @@ $$;
 
 -- Contrôle du texte. Renvoie null si correct, sinon la raison du refus.
 create or replace function comm_check(p text) returns text
-language plpgsql immutable as $$
+language plpgsql immutable set search_path = public, extensions as $$
 declare
   n text := comm_norm(p);
   letters int; nonspace int; commas int; words text[]; nw int; food int; top int;
@@ -164,14 +164,14 @@ begin
 end $$;
 
 create or replace function comm_is_banned(p_uid uuid, p_ip text) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, extensions as $$
   select exists (select 1 from comm_banned where uid = p_uid or (p_ip <> '' and ip = p_ip and created_at > now() - interval '7 days'))
   -- (la connexion n'est bloquée que 7 jours : une adresse de réseau mobile peut être partagée)
 $$;
 
 -- Avertissement ; au-delà de strikes_to_ban, bannissement du compte et de la connexion
 create or replace function comm_strike(p_uid uuid, p_ip text, p_reason text) returns void
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   insert into comm_strikes (uid, reason) values (p_uid, p_reason);
   if (select count(*) from comm_strikes where uid = p_uid) >= comm_setting('strikes_to_ban') then
@@ -183,7 +183,7 @@ end $$;
 
 -- Personnes différentes (et connexions différentes) qui ont lu la même liste
 create or replace function comm_people(p_id bigint, p_since timestamptz default null) returns int
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, extensions as $$
   select least(count(distinct uid), count(distinct nullif(ip, '')) + count(*) filter (where ip = ''))::int
   from (
     select author uid, author_ip ip, created_at from comm_lists where id = p_id and p_since is null
@@ -195,7 +195,7 @@ $$;
 -- --------------------------------------------------------------- lecture --
 -- Composition communautaire d'un produit, telle que la personne qui demande peut la voir
 create or replace function comm_get(p_code text) returns json
-language plpgsql stable security definer set search_path = public as $$
+language plpgsql stable security definer set search_path = public, extensions as $$
 declare me uuid := auth.uid(); l comm_lists; mine comm_lists; others int; need int := comm_setting('need_people');
 begin
   select * into l from comm_lists where code = p_code and status in ('validated','review') order by id limit 1;
@@ -227,7 +227,7 @@ end $$;
 --   already   : tu as déjà envoyé / confirmé cette liste
 -- Erreurs : not_signed_in, banned, limit, bad_text:<raison>, too_many
 create or replace function comm_submit(p_code text, p_text text, p_name text default '') returns json
-language plpgsql volatile security definer set search_path = public as $$
+language plpgsql volatile security definer set search_path = public, extensions as $$
 declare
   me uuid := auth.uid(); v_ip text := comm_ip(); chk text; nrm text; best comm_lists; sim float; l comm_lists;
   need int := comm_setting('need_people'); people int; pending int;
@@ -300,7 +300,7 @@ end $$;
 
 -- ------------------------------------------------------------ « Erreur ? » --
 create or replace function comm_report(p_code text, p_reason text default '') returns json
-language plpgsql volatile security definer set search_path = public as $$
+language plpgsql volatile security definer set search_path = public, extensions as $$
 declare me uuid := auth.uid(); v_ip text := comm_ip(); l comm_lists; n int;
 begin
   if me is null then return json_build_object('ok', false, 'error', 'not_signed_in'); end if;
@@ -324,7 +324,7 @@ end $$;
 -- Quand une liste en revérification est remplacée par une autre lecture validée,
 -- son auteur reçoit un avertissement (la mauvaise liste avait été signalée).
 create or replace function comm_on_reject() returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if old.status = 'review' and new.status = 'rejected' then
     perform comm_strike(old.author, old.author_ip, 'liste signalée puis remplacée (' || old.code || ')');
